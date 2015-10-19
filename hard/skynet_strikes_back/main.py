@@ -1,3 +1,6 @@
+import sys
+
+
 def main():
     (
         num_nodes,
@@ -53,6 +56,7 @@ def pick_edge(edge_set, agent_index, gateway_nodes, gateway_edge_map):
         gateway_nodes=gateway_nodes,
     )
     if gateway_agent_edge:
+        print >> sys.stderr, 'returning gateway_agent_edge'
         return gateway_agent_edge
 
     node_set = _make_node_set(edge_set=edge_set)
@@ -61,9 +65,13 @@ def pick_edge(edge_set, agent_index, gateway_nodes, gateway_edge_map):
         node_set=node_set,
         source=agent_index,
     )
+    print >> sys.stderr, 'shortest_path', shortest_path
 
-    # Heuristic: Remove edge from closest neighbor to a gateway with a
-    #   gateway-degree of greater than one.
+    # Heuristic: Remove edge from "most dangerous" neighbor to a
+    #   gateway with a gateway-degree of greater than one. A neighbor
+    #   is most dangerous when there are the fewest number of free
+    #   nodes on the path to the neighbor where a node is free if it is
+    #   not a direct neighbor to a gateway.
     gateway_degree_map = count_gateway_degree(
         gateway_edge_map=gateway_edge_map
     )
@@ -72,20 +80,36 @@ def pick_edge(edge_set, agent_index, gateway_nodes, gateway_edge_map):
         for node, degree in gateway_degree_map.iteritems()
         if degree > 1
     }
-    for index in sorted(
-        shortest_path['distance_map'],
-        key=shortest_path['distance_map'].get,
-    ):
-        if index not in gateway_degree_map:
-            continue
-        for target_gateway, path_node in (
-            shortest_path['previous_node_map'].iteritems()
-        ):
-            if target_gateway not in gateway_nodes:
-                continue
-            if path_node != index:
-                continue
-            return _find_edge(u=index, v=target_gateway, edge_set=edge_set)
+    print >> sys.stderr, 'gateway_degree_map', gateway_degree_map
+    free_path_map = {
+        index: count_free_nodes_on_path(
+            path=_get_nodes_on_path(
+                source=agent_index,
+                target=index,
+                previous_node_map=shortest_path['previous_node_map'],
+            ),
+            gateway_edge_map=gateway_edge_map,
+        )
+        for index in gateway_degree_map
+    }
+    print >> sys.stderr, 'free_path_map', free_path_map
+    if free_path_map:
+        target_neighbor = min(free_path_map, key=free_path_map.get)
+        print >> sys.stderr, 'target_neighbor', target_neighbor
+        target_gateway_set = _find_gateways_with_neighbor(
+            neighbor=target_neighbor,
+            gateway_edge_map=gateway_edge_map,
+        )
+        target_gateway = min(
+            target_gateway_set,
+            key=shortest_path['distance_map'].get,
+        )
+        print >> sys.stderr, 'returning most dangerous neighbor'
+        return _find_edge(
+            u=target_neighbor,
+            v=target_gateway,
+            edge_set=edge_set,
+        )
 
     # Heuristic: Remove arbitrary edge from gateway with shortest path.
     # Filter so that only gateway nodes remain.
@@ -97,6 +121,7 @@ def pick_edge(edge_set, agent_index, gateway_nodes, gateway_edge_map):
         key=shortest_path['distance_map'].get,
     )
     target_neighbor = shortest_path['previous_node_map'][target_gateway]
+    print >> sys.stderr, 'returning arbitrary edge on closest gateway'
     return _find_edge(u=target_gateway, v=target_neighbor, edge_set=edge_set)
 
 
@@ -169,6 +194,42 @@ def count_gateway_degree(gateway_edge_map):
             node = _other_node_in_edge(edge=edge, node=gateway)
             gateway_degree_map[node] = gateway_degree_map.get(node, 0) + 1
     return gateway_degree_map
+
+
+def _get_nodes_on_path(source, target, previous_node_map):
+    path = []
+    while target != source:
+        target = previous_node_map[target]
+        path.append(target)
+    try:
+        # Remove the original `target`.
+        path.pop()
+    except IndexError:
+        pass
+    path.reverse()
+    return path
+
+
+def count_free_nodes_on_path(path, gateway_edge_map):
+    """How many nodes on the path aren't a direct neighbor of a gateway."""
+    all_gateway_neighbors = set()
+    for gateway, edge_set in gateway_edge_map.iteritems():
+        for edge in edge_set:
+            neighbor = _other_node_in_edge(edge=edge, node=gateway)
+            all_gateway_neighbors.add(neighbor)
+
+    # XXX: This counts gateways as being "free", but a gateway probably
+    #   shouldn't be on the path in the first place.
+    return sum(1for index in path if index not in all_gateway_neighbors)
+
+
+def _find_gateways_with_neighbor(neighbor, gateway_edge_map):
+    gateway_set = set()
+    for gateway, edge_set in gateway_edge_map.iteritems():
+        for edge in edge_set:
+            if neighbor in edge:
+                gateway_set.add(gateway)
+    return gateway_set
 
 
 def update_gateway_edge_map(gateway_edge_map, removed_edge):
