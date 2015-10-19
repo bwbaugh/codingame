@@ -21,6 +21,7 @@ def main():
             edge_set=edge_set,
             agent_index=agent_index,
             gateway_nodes=gateway_nodes,
+            gateway_edge_map=gateway_edge_map,
         )
         edge_set.remove(edge)
         update_gateway_edge_map(
@@ -44,13 +45,49 @@ def _make_gateway_edge_map(edge_set, gateway_nodes):
     return gateway_edge_map
 
 
-def pick_edge(edge_set, agent_index, gateway_nodes):
+def pick_edge(edge_set, agent_index, gateway_nodes, gateway_edge_map):
+    # Heuristic: Sever gateway edge if agent on it.
+    gateway_agent_edge = get_gateway_agent_edge(
+        edge_set=edge_set,
+        agent_index=agent_index,
+        gateway_nodes=gateway_nodes,
+    )
+    if gateway_agent_edge:
+        return gateway_agent_edge
+
     node_set = _make_node_set(edge_set=edge_set)
     shortest_path = dijkstra(
         edge_set=edge_set,
         node_set=node_set,
         source=agent_index,
     )
+
+    # Heuristic: Remove edge from closest neighbor to a gateway with a
+    #   gateway-degree of greater than one.
+    gateway_degree_map = count_gateway_degree(
+        gateway_edge_map=gateway_edge_map
+    )
+    gateway_degree_map = {
+        node: degree
+        for node, degree in gateway_degree_map.iteritems()
+        if degree > 1
+    }
+    for index in sorted(
+        shortest_path['distance_map'],
+        key=shortest_path['distance_map'].get,
+    ):
+        if index not in gateway_degree_map:
+            continue
+        for target_gateway, path_node in (
+            shortest_path['previous_node_map'].iteritems()
+        ):
+            if target_gateway not in gateway_nodes:
+                continue
+            if path_node != index:
+                continue
+            return _find_edge(u=index, v=target_gateway, edge_set=edge_set)
+
+    # Heuristic: Remove arbitrary edge from gateway with shortest path.
     # Filter so that only gateway nodes remain.
     for index in node_set.difference(gateway_nodes):
         del shortest_path['distance_map'][index]
@@ -60,12 +97,15 @@ def pick_edge(edge_set, agent_index, gateway_nodes):
         key=shortest_path['distance_map'].get,
     )
     target_neighbor = shortest_path['previous_node_map'][target_gateway]
-    for edge in edge_set:
-        if target_gateway not in edge:
-            continue
-        if target_neighbor not in edge:
-            continue
-        return edge
+    return _find_edge(u=target_gateway, v=target_neighbor, edge_set=edge_set)
+
+
+def get_gateway_agent_edge(gateway_nodes, edge_set, agent_index):
+    for index in gateway_nodes:
+        for edge in edge_set:
+            if index in edge and agent_index in edge:
+                return edge
+    return None
 
 
 def _make_node_set(edge_set):
@@ -106,14 +146,29 @@ def _find_neighbors(node, edge_set):
     for edge in edge_set:
         if node not in edge:
             continue
-        edge = list(edge)
-        edge.remove(node)
-        neighbor = edge[0]
+        neighbor = _other_node_in_edge(edge=edge, node=node)
         if neighbor in neighbor_set:
             # XXX: Don't know if this is needed or not. Playing it safe.
             continue
         yield neighbor
         neighbor_set.add(neighbor)
+
+
+def _other_node_in_edge(edge, node):
+    """Given an edge, return the other node other than ``node``."""
+    edge = list(edge)
+    edge.remove(node)
+    return edge[0]
+
+
+def count_gateway_degree(gateway_edge_map):
+    """Counts of how many gateways a node is connected to."""
+    gateway_degree_map = {}
+    for gateway, edge_set in gateway_edge_map.iteritems():
+        for edge in edge_set:
+            node = _other_node_in_edge(edge=edge, node=gateway)
+            gateway_degree_map[node] = gateway_degree_map.get(node, 0) + 1
+    return gateway_degree_map
 
 
 def update_gateway_edge_map(gateway_edge_map, removed_edge):
@@ -127,6 +182,15 @@ def update_gateway_edge_map(gateway_edge_map, removed_edge):
             gateways_to_remove.add(index)
     for index in gateways_to_remove:
         del gateway_edge_map[index]
+
+
+def _find_edge(u, v, edge_set):
+    for edge in edge_set:
+        if u not in edge:
+            continue
+        if v not in edge:
+            continue
+        return edge
 
 
 if __name__ == '__main__':
