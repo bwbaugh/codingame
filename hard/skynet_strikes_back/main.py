@@ -78,7 +78,10 @@ def pick_edge(edge_set, agent_index, gateway_nodes, gateway_edge_map):
     gateway_degree_map = {
         node: degree
         for node, degree in gateway_degree_map.iteritems()
-        if degree > 1
+        if degree > 1 and any(
+            node == shortest_path['previous_node_map'][gateway]
+            for gateway in gateway_edge_map
+        )
     }
     print >> sys.stderr, 'gateway_degree_map', gateway_degree_map
     free_path_map = {
