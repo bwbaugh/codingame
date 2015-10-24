@@ -108,6 +108,8 @@ def parse_initial_cards(player_list):
         cards_map[player_num] = [
             Card.loads(input_string=raw_input()) for __ in xrange(num_cards)
         ]
+        # The last card is the top of the deck.
+        cards_map[player_num].reverse()
     return cards_map
 
 
