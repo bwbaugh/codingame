@@ -76,11 +76,24 @@ def main():
     try:
         while all(cards for cards in cards_map.itervalues()):
             num_rounds += 1
+            log.info('Starting round %s.', num_rounds)
+            for each_player in sorted(cards_map):
+                log.debug(
+                    'Player %s has %s cards.',
+                    each_player,
+                    len(cards_map[each_player]),
+                )
             play_round(cards_map=cards_map)
     except OutOfCardsError:
+        log.info('Game is a draw after %s rounds.', num_rounds)
         print 'PAT'
     else:
         winner = determine_final_winner(cards_map=cards_map)
+        log.info(
+            'Final winner is player %s after %s rounds.',
+            winner,
+            num_rounds,
+        )
         print '{winner} {num_rounds}'.format(
             winner=winner,
             num_rounds=num_rounds,
@@ -119,6 +132,8 @@ def play_round(cards_map):
             picked_cards_map=picked_cards_map,
         )
         winner_cards = order_winner_cards(picked_cards_map=picked_cards_map)
+    log.debug('round_winner: %s', round_winner)
+    log.debug('winner_cards: %s', winner_cards)
     # If performance is an issue when inserting, consider using
     #   `collections.deque` for the `appendleft()` method.
     cards_map[round_winner] = winner_cards + cards_map[round_winner]
