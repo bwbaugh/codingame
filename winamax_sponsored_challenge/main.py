@@ -5,6 +5,9 @@ import logging
 import sys
 
 
+#: How many cards to set aside when a war occurs.
+NUM_WAR_CARDS = 3
+
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
@@ -118,17 +121,25 @@ def play_round(cards_map):
 
     :raises OutOfCardsError: If a player runs out of cards during a war.
     """
-    picked_cards_map = {}
-    for each_player, each_cards in cards_map.iteritems():
-        picked_cards_map[each_player] = each_cards.pop()
-    log.debug('picked_cards_map: %r', picked_cards_map)
+    try:
+        picked_cards_map = pop_player_cards(cards_map=cards_map)
+    except OutOfCardsError:
+        # This should only happen from within a war.
+        raise Exception('Unexpectedly out of cards.')
     if is_war(picked_cards_map=picked_cards_map):
+        log.info('War starting.')
         war_data = play_war(
-            picked_cards_map=picked_cards_map,
+            war_cards_map={
+                each_player: [each_card]
+                for each_player, each_card in picked_cards_map.iteritems()
+            },
             cards_map=cards_map,
         )
+        log.info('War finished.')
         round_winner = war_data['winner']
-        winner_cards = war_data['winner_cards']
+        winner_cards = order_war_winner_cards(
+            war_cards_map=war_data['war_cards_map'],
+        )
     else:
         round_winner = determine_round_winner(
             picked_cards_map=picked_cards_map,
@@ -139,6 +150,21 @@ def play_round(cards_map):
     # If performance is an issue when inserting, consider using
     #   `collections.deque` for the `appendleft()` method.
     cards_map[round_winner] = winner_cards + cards_map[round_winner]
+
+
+def pop_player_cards(cards_map):
+    """Removes and returns the next card for each player.
+
+    :raises OutOfCardsError: If a player has no cards left.
+    """
+    picked_cards_map = {}
+    for each_player, each_cards in cards_map.iteritems():
+        try:
+            picked_cards_map[each_player] = each_cards.pop()
+        except IndexError:
+            raise OutOfCardsError
+    log.debug('picked_cards_map: %r', picked_cards_map)
+    return picked_cards_map
 
 
 def is_war(picked_cards_map):
@@ -152,8 +178,40 @@ def is_war(picked_cards_map):
     return False
 
 
-def play_war(picked_cards_map, cards_map):
-    raise NotImplementedError
+def play_war(war_cards_map, cards_map):
+    """
+    :raises OutOfCardsError: If a player runs out of cards.
+    """
+    log.debug('war start war_cards_map: %s', war_cards_map)
+    for each_player, each_cards in cards_map.iteritems():
+        for __ in xrange(NUM_WAR_CARDS):
+            try:
+                war_cards_map[each_player].append(each_cards.pop())
+            except IndexError:
+                raise OutOfCardsError
+    log.debug('after setting aside war_cards_map: %s', war_cards_map)
+
+    # TODO: Refactor `play_round()` to allow less copied code.
+    picked_cards_map = pop_player_cards(cards_map=cards_map)
+    if is_war(picked_cards_map=picked_cards_map):
+        war_data = play_war(
+            war_cards_map=war_cards_map,
+            cards_map=cards_map,
+        )
+        round_winner = war_data['winner']
+        # for each_player, each_cards in war_data['war_cards_map']:
+        #     war_cards_map[each_player].extend(each_cards)
+    else:
+        round_winner = determine_round_winner(
+            picked_cards_map=picked_cards_map,
+        )
+
+    log.info('appending picked_cards_map: %s', picked_cards_map)
+    log.info('to war_cards_map: %s', war_cards_map)
+    for each_player, each_card in picked_cards_map.iteritems():
+        war_cards_map[each_player].append(each_card)
+
+    return {'winner': round_winner, 'war_cards_map': war_cards_map}
 
 
 def determine_round_winner(picked_cards_map):
@@ -172,6 +230,14 @@ def order_winner_cards(picked_cards_map):
         picked_cards_map[each_player]
         for each_player in sorted(picked_cards_map)
     ]
+
+
+def order_war_winner_cards(war_cards_map):
+    """First the cards from the first player, then the one from the second."""
+    cards = []
+    for each_player in sorted(war_cards_map):
+        cards.extend(war_cards_map[each_player])
+    return cards
 
 
 def determine_final_winner(cards_map):
