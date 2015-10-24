@@ -1,4 +1,13 @@
-"""Determine the winner of a game of war."""
+"""Determine the winner of a game of war.
+
+.. note::
+
+    Unfortunately, a lot of functions in this module employ the bad
+    practice of both performing a side effect (like mutating the input)
+    and returning a value. If this was more than a "just for fun puzzle
+    for the weekend", then it'd be worth refactoring so that a function
+    only returns a value _or_ performs a side effect.
+"""
 import collections
 import functools
 import logging
@@ -8,7 +17,7 @@ import sys
 #: How many cards to set aside when a war occurs.
 NUM_WAR_CARDS = 3
 
-logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
+logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
@@ -86,7 +95,12 @@ def main():
                     each_player,
                     len(cards_map[each_player]),
                 )
-            play_round(cards_map=cards_map)
+            round_data = play_round(cards_map=cards_map)
+            # If performance is an issue when inserting, consider using
+            #   `collections.deque` for the `appendleft()` method.
+            cards_map[round_data['winner']] = (
+                round_data['winner_cards'] + cards_map[round_data['winner']]
+            )
     except OutOfCardsError:
         log.info('Game is a draw after %s rounds.', num_rounds)
         print 'PAT'
@@ -121,35 +135,23 @@ def play_round(cards_map):
 
     :raises OutOfCardsError: If a player runs out of cards during a war.
     """
-    try:
-        picked_cards_map = pop_player_cards(cards_map=cards_map)
-    except OutOfCardsError:
-        # This should only happen from within a war.
-        raise Exception('Unexpectedly out of cards.')
+    picked_cards_map = pop_player_cards(cards_map=cards_map)
     if is_war(picked_cards_map=picked_cards_map):
         log.info('War starting.')
-        war_data = play_war(
-            war_cards_map={
-                each_player: [each_card]
-                for each_player, each_card in picked_cards_map.iteritems()
-            },
-            cards_map=cards_map,
-        )
+        war_data = play_war(cards_map=cards_map)
         log.info('War finished.')
         round_winner = war_data['winner']
-        winner_cards = order_war_winner_cards(
-            war_cards_map=war_data['war_cards_map'],
-        )
     else:
         round_winner = determine_round_winner(
             picked_cards_map=picked_cards_map,
         )
-        winner_cards = order_winner_cards(picked_cards_map=picked_cards_map)
+    winner_cards = order_winner_cards(picked_cards_map=picked_cards_map)
     log.debug('round_winner: %s', round_winner)
     log.debug('winner_cards: %s', winner_cards)
-    # If performance is an issue when inserting, consider using
-    #   `collections.deque` for the `appendleft()` method.
-    cards_map[round_winner] = winner_cards + cards_map[round_winner]
+    return {
+        'winner': round_winner,
+        'winner_cards': winner_cards,
+    }
 
 
 def pop_player_cards(cards_map):
@@ -178,40 +180,35 @@ def is_war(picked_cards_map):
     return False
 
 
-def play_war(war_cards_map, cards_map):
+def play_war(cards_map):
     """
     :raises OutOfCardsError: If a player runs out of cards.
     """
-    log.debug('war start war_cards_map: %s', war_cards_map)
+    war_cards_map = {}
     for each_player, each_cards in cards_map.iteritems():
+        cards = []
         for __ in xrange(NUM_WAR_CARDS):
             try:
-                war_cards_map[each_player].append(each_cards.pop())
+                cards.append(each_cards.pop())
             except IndexError:
                 raise OutOfCardsError
-    log.debug('after setting aside war_cards_map: %s', war_cards_map)
+        war_cards_map[each_player] = cards
+    log.debug('war_cards_map: %s', war_cards_map)
 
-    # TODO: Refactor `play_round()` to allow less copied code.
-    picked_cards_map = pop_player_cards(cards_map=cards_map)
-    if is_war(picked_cards_map=picked_cards_map):
-        war_data = play_war(
-            war_cards_map=war_cards_map,
-            cards_map=cards_map,
-        )
-        round_winner = war_data['winner']
-        # for each_player, each_cards in war_data['war_cards_map']:
-        #     war_cards_map[each_player].extend(each_cards)
-    else:
-        round_winner = determine_round_winner(
-            picked_cards_map=picked_cards_map,
-        )
+    round_data = play_round(cards_map=cards_map)
+    # XXX: I'm not very sure about the order of operations after a war.
+    #   The problem statement is a little ambiguous on exactly how and
+    #   when to put the cards from the battle(s) and war(s) into the
+    #   player's deck.
+    cards_map[round_data['winner']] = (
+        order_war_winner_cards(war_cards_map=war_cards_map) +
+        cards_map[round_data['winner']]
+    )
+    cards_map[round_data['winner']] = (
+        round_data['winner_cards'] + cards_map[round_data['winner']]
+    )
 
-    log.info('appending picked_cards_map: %s', picked_cards_map)
-    log.info('to war_cards_map: %s', war_cards_map)
-    for each_player, each_card in picked_cards_map.iteritems():
-        war_cards_map[each_player].append(each_card)
-
-    return {'winner': round_winner, 'war_cards_map': war_cards_map}
+    return {'winner': round_data['winner']}
 
 
 def determine_round_winner(picked_cards_map):
