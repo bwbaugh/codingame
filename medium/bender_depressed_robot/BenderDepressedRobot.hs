@@ -1,4 +1,5 @@
 import Control.Arrow (second)
+import Control.Monad
 import Data.List
 import Data.Maybe
 import System.IO
@@ -25,8 +26,11 @@ main = do
             genPath grid (initialPosition grid) initialDirection initialState
     if containsDuplicate path
         then putStrLn "LOOP"
-        else putStr $ unlines $
-            map (show . (\(_, direction, _, _) -> direction)) path
+        else forM_ path $ \(position, direction, state, grid) -> do
+            hPutStr stderr $ unlines $ replaceCell grid position 'x'
+            hPrint stderr position
+            hPrint stderr state
+            print direction
 
 initialPosition :: Grid -> Position
 initialPosition grid = (rowIndex, columnIndex)
@@ -90,9 +94,12 @@ getCell :: Grid -> Position -> Cell
 getCell grid (row, column) = grid !! row !! column
 
 removeObstacle :: Grid -> Position -> Grid
-removeObstacle grid (row, column) = replaceAtIndex row row' grid
+removeObstacle grid (row, column) = replaceCell grid (row, column) ' '
+
+replaceCell :: Grid -> Position -> Cell -> Grid
+replaceCell grid (row, column) cell = replaceAtIndex row row' grid
     where
-    row' = replaceAtIndex column ' ' (grid !! row)
+    row' = replaceAtIndex column cell (grid !! row)
 
 -- http://stackoverflow.com/a/10133429/1988505
 replaceAtIndex :: Int -> a -> [a] -> [a]
