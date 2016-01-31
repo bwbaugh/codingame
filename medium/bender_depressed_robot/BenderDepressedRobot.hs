@@ -73,13 +73,14 @@ genPath grid position direction state
         (position, direction) : genPath grid position' EAST state
     | nextCell == 'W' =
         (position, direction) : genPath grid position' WEST state
-    -- TODO(bwbaugh|2016-01-30): Handle circuit inverters 'I',
-    --   Breaker mode 'B', and teleporters 'T'.
+    | nextCell == 'T' =
+        (position, direction) : genPath grid teleportPosition direction state
     | otherwise =
         (position, direction) : genPath grid position' direction state
     where
     nextCell = getCell grid position'
     position' = nextPos direction position
+    teleportPosition = teleport grid position
 
 obstacles :: [Cell]
 obstacles = "X#"
@@ -114,6 +115,14 @@ changeDirection grid position isReverse = head $ filter isValid directions
     isValid direction = getCell grid position' `notElem` obstacles
         where
             position' = nextPos direction position
+
+teleport :: Grid -> Position -> Position
+teleport grid position = otherTeleporter
+    where
+    otherTeleporter = head $ filter (/= position) locations
+    locations =
+        concatMap (\(x, ys) -> [(x, y) | y <- ys]) $
+        filter ((not . null) . snd) $ zip [0..] (map (elemIndices 'T') grid)
 
 -- TODO(bwbaugh|2016-01-30): Speed up by using a set or similar.
 containsDuplicate :: (Eq a) => [a] -> Bool
