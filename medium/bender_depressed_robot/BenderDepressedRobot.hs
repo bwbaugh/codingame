@@ -10,6 +10,11 @@ type Cell = Char
 type Grid = [[Cell]]
 type Position = (Int, Int)
 
+data BenderState = BenderState {
+    breakerMode :: Bool
+    }
+    deriving (Show)
+
 main :: IO ()
 main = do
     hSetBuffering stdout NoBuffering -- DO NOT REMOVE
@@ -17,7 +22,8 @@ main = do
     grid <- fmap lines getContents
     -- TODO(bwbaugh|2016-01-31): Consider including direction check.
     let (points, directions) =
-            unzip $ genPath grid (initialPosition grid) initialDirection
+            unzip $
+            genPath grid (initialPosition grid) initialDirection initialState
     if containsDuplicate points then
         putStrLn "LOOP"
     else
@@ -34,19 +40,34 @@ initialPosition grid = (rowIndex, columnIndex)
 initialDirection :: Direction
 initialDirection = SOUTH
 
-genPath :: Grid -> Position -> Direction -> [(Position, Direction)]
-genPath grid position direction
+initialState :: BenderState
+initialState = BenderState {
+    breakerMode = False
+    }
+
+genPath ::
+    Grid
+    -> Position
+    -> Direction
+    -> BenderState
+    -> [(Position, Direction)]
+genPath grid position direction state
     | nextCell == '$' = [(position, direction)]
     -- TODO(bwbaugh|2016-01-30): Handle reverse order when inverted.
     | nextCell `elem` obstacles =
-        genPath grid position (changeDirection grid position)
-    | nextCell == 'N' = (position, direction) : genPath grid position' NORTH
-    | nextCell == 'S' = (position, direction) : genPath grid position' SOUTH
-    | nextCell == 'E' = (position, direction) : genPath grid position' EAST
-    | nextCell == 'W' = (position, direction) : genPath grid position' WEST
+        genPath grid position (changeDirection grid position) state
+    | nextCell == 'N' =
+        (position, direction) : genPath grid position' NORTH state
+    | nextCell == 'S' =
+        (position, direction) : genPath grid position' SOUTH state
+    | nextCell == 'E' =
+        (position, direction) : genPath grid position' EAST state
+    | nextCell == 'W' =
+        (position, direction) : genPath grid position' WEST state
     -- TODO(bwbaugh|2016-01-30): Handle circuit inverters 'I',
     --   Breaker mode 'B', and teleporters 'T'.
-    | otherwise = (position, direction) : genPath grid position' direction
+    | otherwise =
+        (position, direction) : genPath grid position' direction state
     where
     nextCell = getCell grid position'
     position' = nextPos direction position
