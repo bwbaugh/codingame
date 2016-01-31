@@ -14,20 +14,19 @@ data BenderState = BenderState {
     breakerMode :: Bool
     , invertDirections :: Bool
     }
-    deriving (Show)
+    deriving (Eq, Show)
 
 main :: IO ()
 main = do
     hSetBuffering stdout NoBuffering -- DO NOT REMOVE
     _ <- getLine
     grid <- fmap lines getContents
-    -- TODO(bwbaugh|2016-01-31): Consider including direction check.
-    let (points, directions) =
-            unzip $
+    let path =
             genPath grid (initialPosition grid) initialDirection initialState
-    if containsDuplicate points
+    if containsDuplicate path
         then putStrLn "LOOP"
-        else putStr $ unlines $ map show directions
+        else putStr $ unlines $
+            map (show . (\(_, direction, _, _) -> direction)) path
 
 initialPosition :: Grid -> Position
 initialPosition grid = (rowIndex, columnIndex)
@@ -51,14 +50,14 @@ genPath ::
     -> Position
     -> Direction
     -> BenderState
-    -> [(Position, Direction)]
+    -> [(Position, Direction, BenderState, Grid)]
 genPath grid position direction state
-    | nextCell == '$' = [(position, direction)]
+    | nextCell == '$' = [(position, direction, state, grid)]
     | nextCell == 'B' =
-        (position, direction) : genPath grid position' direction
+        (position, direction, state, grid) : genPath grid position' direction
             (state { breakerMode = not (breakerMode state)})
     | nextCell == 'I' =
-        (position, direction) : genPath grid position' direction
+        (position, direction, state, grid) : genPath grid position' direction
             (state { invertDirections = not (invertDirections state)})
     | breakerMode state && nextCell == 'X' =
         genPath (removeObstacle grid position') position direction state
@@ -66,17 +65,17 @@ genPath grid position direction state
         genPath grid position
             (changeDirection grid position (invertDirections state)) state
     | nextCell == 'N' =
-        (position, direction) : genPath grid position' NORTH state
+        (position, direction, state, grid) : genPath grid position' NORTH state
     | nextCell == 'S' =
-        (position, direction) : genPath grid position' SOUTH state
+        (position, direction, state, grid) : genPath grid position' SOUTH state
     | nextCell == 'E' =
-        (position, direction) : genPath grid position' EAST state
+        (position, direction, state, grid) : genPath grid position' EAST state
     | nextCell == 'W' =
-        (position, direction) : genPath grid position' WEST state
+        (position, direction, state, grid) : genPath grid position' WEST state
     | nextCell == 'T' =
-        (position, direction) : genPath grid teleportPosition direction state
+        (position, direction, state, grid) : genPath grid teleportPosition direction state
     | otherwise =
-        (position, direction) : genPath grid position' direction state
+        (position, direction, state, grid) : genPath grid position' direction state
     where
     nextCell = getCell grid position'
     position' = nextPos direction position
