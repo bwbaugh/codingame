@@ -69,7 +69,8 @@ genPath grid position direction state
     | nextCell == 'S' = x : genPath grid position' SOUTH state
     | nextCell == 'E' = x : genPath grid position' EAST state
     | nextCell == 'W' = x : genPath grid position' WEST state
-    | otherwise = x : genPath grid position' direction state
+    | nextCell == ' ' = x : genPath grid position' direction state
+    | otherwise = error ("unknown nextCell: " ++ [nextCell])
     where
     x = (position, direction, state, grid)
     nextCell = getCell grid position'
