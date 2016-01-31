@@ -52,31 +52,26 @@ genPath ::
     -> BenderState
     -> [(Position, Direction, BenderState, Grid)]
 genPath grid position direction state
-    | nextCell == '$' = [(position, direction, state, grid)]
-    | nextCell == 'B' =
-        (position, direction, state, grid) : genPath grid position' direction
-            (state { breakerMode = not (breakerMode state)})
-    | nextCell == 'I' =
-        (position, direction, state, grid) : genPath grid position' direction
-            (state { invertDirections = not (invertDirections state)})
     | breakerMode state && nextCell == 'X' =
         genPath (removeObstacle grid position') position direction state
     | nextCell `elem` obstacles =
         genPath grid position
             (changeDirection grid position (invertDirections state)) state
-    | nextCell == 'N' =
-        (position, direction, state, grid) : genPath grid position' NORTH state
-    | nextCell == 'S' =
-        (position, direction, state, grid) : genPath grid position' SOUTH state
-    | nextCell == 'E' =
-        (position, direction, state, grid) : genPath grid position' EAST state
-    | nextCell == 'W' =
-        (position, direction, state, grid) : genPath grid position' WEST state
-    | nextCell == 'T' =
-        (position, direction, state, grid) : genPath grid teleportPosition direction state
-    | otherwise =
-        (position, direction, state, grid) : genPath grid position' direction state
+    | nextCell == '$' = [x]
+    | nextCell == 'B' =
+        x : genPath grid position' direction
+            (state { breakerMode = not (breakerMode state)})
+    | nextCell == 'I' =
+        x : genPath grid position' direction
+            (state { invertDirections = not (invertDirections state)})
+    | nextCell == 'T' = x : genPath grid teleportPosition direction state
+    | nextCell == 'N' = x : genPath grid position' NORTH state
+    | nextCell == 'S' = x : genPath grid position' SOUTH state
+    | nextCell == 'E' = x : genPath grid position' EAST state
+    | nextCell == 'W' = x : genPath grid position' WEST state
+    | otherwise = x : genPath grid position' direction state
     where
+    x = (position, direction, state, grid)
     nextCell = getCell grid position'
     position' = nextPos direction position
     teleportPosition = teleport grid position
