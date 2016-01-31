@@ -15,9 +15,13 @@ main = do
     hSetBuffering stdout NoBuffering -- DO NOT REMOVE
     _ <- getLine
     grid <- fmap lines getContents
-    -- TODO(bwbaugh|2016-01-30): Handle grids resulting in "LOOP".
-    let path = genPath grid (initialPosition grid) initialDirection
-    putStr $ unlines $ map show path
+    -- TODO(bwbaugh|2016-01-31): Consider including direction check.
+    let (points, directions) =
+            unzip $ genPath grid (initialPosition grid) initialDirection
+    if containsDuplicate points then
+        putStrLn "LOOP"
+    else
+        putStr $ unlines $ map show directions
 
 initialPosition :: Grid -> Position
 initialPosition grid = (rowIndex, columnIndex)
@@ -30,21 +34,21 @@ initialPosition grid = (rowIndex, columnIndex)
 initialDirection :: Direction
 initialDirection = SOUTH
 
-genPath :: Grid -> Position -> Direction -> [Direction]
+genPath :: Grid -> Position -> Direction -> [(Position, Direction)]
 genPath grid position direction
-    | nextCell == '$' = [direction]
+    | nextCell == '$' = [(position, direction)]
     -- TODO(bwbaugh|2016-01-30): Properly handle obstacles as `succ` is
     --   not the proper way. Instead we should be trying all directions
     --   starting with SOUTH.
     -- TODO(bwbaugh|2016-01-30): Handle reverse order when inverted.
     | nextCell `elem` "X#" = genPath grid position (succ direction)
-    | nextCell == 'N' = direction : genPath grid position' NORTH
-    | nextCell == 'S' = direction : genPath grid position' SOUTH
-    | nextCell == 'E' = direction : genPath grid position' EAST
-    | nextCell == 'W' = direction : genPath grid position' WEST
+    | nextCell == 'N' = (position, direction) : genPath grid position' NORTH
+    | nextCell == 'S' = (position, direction) : genPath grid position' SOUTH
+    | nextCell == 'E' = (position, direction) : genPath grid position' EAST
+    | nextCell == 'W' = (position, direction) : genPath grid position' WEST
     -- TODO(bwbaugh|2016-01-30): Handle circuit inverters 'I',
     --   Breaker mode 'B', and teleporters 'T'.
-    | otherwise = direction : genPath grid position' direction
+    | otherwise = (position, direction) : genPath grid position' direction
     where
     nextCell = getCell grid position'
     position' = nextPos direction position
@@ -58,3 +62,11 @@ nextPos WEST (row, column) = (row, column - 1)
 
 getCell :: Grid -> Position -> Cell
 getCell grid (row, column) = grid !! row !! column
+
+-- TODO(bwbaugh|2016-01-30): Speed up by using a set or similar.
+containsDuplicate :: (Eq a) => [a] -> Bool
+containsDuplicate xs = check xs []
+    where
+    check :: (Eq a) => [a] -> [a] -> Bool
+    check [] _ = False
+    check (y:ys) seen = y `elem` seen || check ys (y : seen)
