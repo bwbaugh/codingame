@@ -4,7 +4,7 @@ import Data.Maybe
 import System.IO
 
 data Direction = SOUTH | EAST | NORTH | WEST
-    deriving (Eq, Ord, Show, Enum)
+    deriving (Eq, Ord, Show, Bounded, Enum)
 
 type Cell = Char
 type Grid = [[Cell]]
@@ -37,11 +37,9 @@ initialDirection = SOUTH
 genPath :: Grid -> Position -> Direction -> [(Position, Direction)]
 genPath grid position direction
     | nextCell == '$' = [(position, direction)]
-    -- TODO(bwbaugh|2016-01-30): Properly handle obstacles as `succ` is
-    --   not the proper way. Instead we should be trying all directions
-    --   starting with SOUTH.
     -- TODO(bwbaugh|2016-01-30): Handle reverse order when inverted.
-    | nextCell `elem` "X#" = genPath grid position (succ direction)
+    | nextCell `elem` obstacles =
+        genPath grid position (changeDirection grid position)
     | nextCell == 'N' = (position, direction) : genPath grid position' NORTH
     | nextCell == 'S' = (position, direction) : genPath grid position' SOUTH
     | nextCell == 'E' = (position, direction) : genPath grid position' EAST
@@ -53,6 +51,9 @@ genPath grid position direction
     nextCell = getCell grid position'
     position' = nextPos direction position
 
+obstacles :: [Cell]
+obstacles = "X#"
+
 nextPos :: Direction -> Position -> Position
 -- TODO(bwbaugh|2016-01-30): Handle out of bounds (return a Maybe Position).
 nextPos NORTH (row, column) = (row - 1, column)
@@ -62,6 +63,16 @@ nextPos WEST (row, column) = (row, column - 1)
 
 getCell :: Grid -> Position -> Cell
 getCell grid (row, column) = grid !! row !! column
+
+changeDirection :: Grid -> Position -> Direction
+changeDirection grid position = head $ filter isValid directions
+    where
+    directions :: [Direction]
+    directions = [minBound..maxBound]
+    isValid :: Direction -> Bool
+    isValid direction = getCell grid position' `notElem` obstacles
+        where
+            position' = nextPos direction position
 
 -- TODO(bwbaugh|2016-01-30): Speed up by using a set or similar.
 containsDuplicate :: (Eq a) => [a] -> Bool
