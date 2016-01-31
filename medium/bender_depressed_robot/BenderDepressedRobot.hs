@@ -53,7 +53,11 @@ genPath ::
     -> [(Position, Direction)]
 genPath grid position direction state
     | nextCell == '$' = [(position, direction)]
-    -- TODO(bwbaugh|2016-01-30): Handle reverse order when inverted.
+    | nextCell == 'B' =
+        (position, direction) : genPath grid position' direction
+            (state { breakerMode = not (breakerMode state)})
+    | breakerMode state && nextCell == 'X' =
+        genPath (removeObstacle grid position') position direction state
     | nextCell `elem` obstacles =
         genPath grid position (changeDirection grid position) state
     | nextCell == 'N' =
@@ -85,6 +89,16 @@ nextPos WEST (row, column) = (row, column - 1)
 getCell :: Grid -> Position -> Cell
 getCell grid (row, column) = grid !! row !! column
 
+removeObstacle :: Grid -> Position -> Grid
+removeObstacle grid (row, column) = replaceAtIndex row row' grid
+    where
+    row' = replaceAtIndex column ' ' (grid !! row)
+
+-- http://stackoverflow.com/a/10133429/1988505
+replaceAtIndex :: Int -> a -> [a] -> [a]
+replaceAtIndex n item ls = a ++ (item:b) where (a, _:b) = splitAt n ls
+
+-- TODO(bwbaugh|2016-01-30): Handle reverse order when inverted.
 changeDirection :: Grid -> Position -> Direction
 changeDirection grid position = head $ filter isValid directions
     where
