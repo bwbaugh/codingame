@@ -12,6 +12,7 @@ type Position = (Int, Int)
 
 data BenderState = BenderState {
     breakerMode :: Bool
+    , invertDirections :: Bool
     }
     deriving (Show)
 
@@ -24,10 +25,9 @@ main = do
     let (points, directions) =
             unzip $
             genPath grid (initialPosition grid) initialDirection initialState
-    if containsDuplicate points then
-        putStrLn "LOOP"
-    else
-        putStr $ unlines $ map show directions
+    if containsDuplicate points
+        then putStrLn "LOOP"
+        else putStr $ unlines $ map show directions
 
 initialPosition :: Grid -> Position
 initialPosition grid = (rowIndex, columnIndex)
@@ -43,6 +43,7 @@ initialDirection = SOUTH
 initialState :: BenderState
 initialState = BenderState {
     breakerMode = False
+    , invertDirections = False
     }
 
 genPath ::
@@ -56,10 +57,14 @@ genPath grid position direction state
     | nextCell == 'B' =
         (position, direction) : genPath grid position' direction
             (state { breakerMode = not (breakerMode state)})
+    | nextCell == 'I' =
+        (position, direction) : genPath grid position' direction
+            (state { invertDirections = not (invertDirections state)})
     | breakerMode state && nextCell == 'X' =
         genPath (removeObstacle grid position') position direction state
     | nextCell `elem` obstacles =
-        genPath grid position (changeDirection grid position) state
+        genPath grid position
+            (changeDirection grid position (invertDirections state)) state
     | nextCell == 'N' =
         (position, direction) : genPath grid position' NORTH state
     | nextCell == 'S' =
@@ -98,12 +103,13 @@ removeObstacle grid (row, column) = replaceAtIndex row row' grid
 replaceAtIndex :: Int -> a -> [a] -> [a]
 replaceAtIndex n item ls = a ++ (item:b) where (a, _:b) = splitAt n ls
 
--- TODO(bwbaugh|2016-01-30): Handle reverse order when inverted.
-changeDirection :: Grid -> Position -> Direction
-changeDirection grid position = head $ filter isValid directions
+changeDirection :: Grid -> Position -> Bool -> Direction
+changeDirection grid position isReverse = head $ filter isValid directions
     where
     directions :: [Direction]
-    directions = [minBound..maxBound]
+    directions = if isReverse
+        then reverse [minBound..maxBound]
+        else [minBound..maxBound]
     isValid :: Direction -> Bool
     isValid direction = getCell grid position' `notElem` obstacles
         where
