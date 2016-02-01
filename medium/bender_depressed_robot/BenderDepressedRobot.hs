@@ -78,7 +78,7 @@ genPath grid position direction state
     x = (position, direction, state, grid)
     nextCell = getCell grid position'
     position' = nextPos direction position
-    teleportPosition = teleport grid position
+    teleportPosition = teleport grid position'
 
 obstacles :: [Cell]
 obstacles = "X#"
