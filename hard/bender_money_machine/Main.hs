@@ -68,7 +68,9 @@ main = do
     hPrint stderr graph
     hPrint stderr weights
     let paths = findPaths "0" "E" graph
-    forM_ paths $ hPrint stderr
+    forM_ paths $ \path -> do
+        hPrint stderr path
+        hPrint stderr $ cost weights path
 
 readInput :: Handle -> IO (Graph, [(Node, Weight)])
 readInput = fmap (unzip . map parseLine . tail . lines) . hGetContents
@@ -85,3 +87,6 @@ findPaths source target graph
         neighbor <- fromJust $ lookup source graph
         rest <- findPaths neighbor target graph
         return $ source : rest
+
+cost :: [(Node, Weight)] -> Path -> Weight
+cost weights path = sum $ map (\node -> fromMaybe 0 $ lookup node weights) path
