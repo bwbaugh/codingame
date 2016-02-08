@@ -71,6 +71,7 @@ main = do
     forM_ paths $ \path -> do
         hPrint stderr path
         hPrint stderr $ cost weights path
+    print $ maximum $ map (cost weights) paths
 
 readInput :: Handle -> IO (Graph, [(Node, Weight)])
 readInput = fmap (unzip . map parseLine . tail . lines) . hGetContents
