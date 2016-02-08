@@ -61,13 +61,12 @@ type Weight = Int
 
 main :: IO ()
 main = do
-    _ <- getLine  -- Number of rooms.
-    (graph, weights) <- readInput
+    (graph, weights) <- readInput stdin
     hPrint stderr graph
     hPrint stderr weights
 
-readInput :: IO (Graph, [(Node, Weight)])
-readInput = fmap (unzip . map parseLine . lines) getContents
+readInput :: Handle -> IO (Graph, [(Node, Weight)])
+readInput = fmap (unzip . map parseLine . tail . lines) . hGetContents
 
 parseLine :: String -> ((Node, [Node]), (Node, Weight))
 parseLine line = ((node, nub [a, b]), (node, read weight))
