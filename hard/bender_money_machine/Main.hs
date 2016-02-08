@@ -58,7 +58,6 @@ import System.IO
 type Graph = [(Node, [Node])]
 type Node = String
 type Weight = Int
-type Edge = (Node, Node)
 
 main :: IO ()
 main = do
@@ -68,23 +67,9 @@ main = do
     hPrint stderr weights
 
 readInput :: IO (Graph, [(Node, Weight)])
-readInput = do
-    contents <- getContents
-    let xs = map parseLine $ lines contents
-    return (parseGraph xs, parseWeights xs)
+readInput = fmap (unzip . map parseLine . lines) getContents
 
-parseLine :: String -> (Node, Weight, [Edge])
-parseLine line = (node, read weight, edges)
+parseLine :: String -> ((Node, [Node]), (Node, Weight))
+parseLine line = ((node, nub [a, b]), (node, read weight))
     where
     [node, weight, a, b] = words line
-    edges = nub [(node, a), (node, b)]
-
-parseGraph :: [(Node, Weight, [Edge])] -> Graph
-parseGraph = map helper
-    where
-    helper (node, _, edges) = (node, map snd edges)
-
-parseWeights :: [(Node, Weight, [Edge])] -> [(Node, Weight)]
-parseWeights = map helper
-    where
-    helper (node, weight, _) = (node, weight)
