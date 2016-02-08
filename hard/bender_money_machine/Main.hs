@@ -51,7 +51,6 @@ Input
 Output
 88
 -}
-import Control.Monad
 import Data.List (nub)
 import Data.Maybe
 import System.IO
@@ -65,13 +64,7 @@ type Path = [Node]
 main :: IO ()
 main = do
     (graph, weights) <- readInput stdin
-    hPrint stderr graph
-    hPrint stderr weights
-    let paths = findPaths "0" "E" graph
-    forM_ paths $ \path -> do
-        hPrint stderr path
-        hPrint stderr $ cost weights path
-    print $ maximum $ map (cost weights) paths
+    print $ maximum $ map (cost weights) $ findPaths "0" "E" graph
 
 readInput :: Handle -> IO (Graph, [(Node, Weight)])
 readInput = fmap (unzip . map parseLine . tail . lines) . hGetContents
