@@ -1,6 +1,13 @@
 import System.IO
 import Control.Monad
 
+data Pod = Pod {
+      getPos :: (Int, Int)
+    , getSpeed :: (Int, Int)
+    , getAngle :: Int
+    , getCheckPoint :: Int
+    } deriving (Show)
+
 main :: IO ()
 main = do
     hSetBuffering stdout NoBuffering -- DO NOT REMOVE
@@ -17,6 +24,7 @@ main = do
         putStrLn "8000 4500 100"
         putStrLn "8000 4500 100"
 
--- | [x, y, vx, vy, angle, nextcheckpointid]
-readPod :: IO [Int]
-readPod = fmap (map read . words) getLine
+readPod :: IO Pod
+readPod = do
+    [x, y, vx, vy, angle, nextCheckPointId] <- fmap (map read . words) getLine
+    return $ Pod (x, y) (vx, vy) angle nextCheckPointId
