@@ -37,5 +37,12 @@ readPod = do
 pickMove :: [Checkpoint] -> Pod -> (Position, Thrust)
 pickMove checkpoints pod = (position, thrust)
   where
-    position = checkpoints !! getCheckPoint pod
-    thrust = 100
+    position@(cx, cy) = checkpoints !! getCheckPoint pod
+    thrust = clamp 20 200 (distance (getPos pod) position)
+
+distance :: Position -> Position -> Int
+distance (x1, y1) (x2, y2) = round $ sqrt $ fromIntegral $
+    (x1 - x2) ^ 2 + (y1 - y2) ^ 2
+
+clamp :: (Ord a) => a -> a -> a -> a
+clamp mn mx = max mn . min mx
