@@ -20,11 +20,17 @@ main = do
     forever $ do
         myPods <- replicateM 2 readPod
         enemyPods <- replicateM 2 readPod
-
-        putStrLn "8000 4500 100"
-        putStrLn "8000 4500 100"
+        forM_ myPods $ \pod -> do
+            let (x, y, thrust) = pickMove checkpoints pod
+            putStrLn . unwords . map show $ [x, y, thrust]
 
 readPod :: IO Pod
 readPod = do
     [x, y, vx, vy, angle, nextCheckPointId] <- fmap (map read . words) getLine
     return $ Pod (x, y) (vx, vy) angle nextCheckPointId
+
+pickMove :: [[Int]] -> Pod -> (Int, Int, Int)
+pickMove checkpoints pod = (x, y, thrust)
+  where
+    [x, y] = checkpoints !! getCheckPoint pod
+    thrust = 100
