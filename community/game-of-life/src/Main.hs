@@ -27,7 +27,7 @@ nextState grid@(Grid xss) =
     Grid . chunksOf cols . map (uncurry applyRule) $ zip (concat xss) neighbors
   where
     neighbors :: [Int]
-    neighbors = map (flip countLiveNeighbors grid) indices
+    neighbors = map (`countLiveNeighbors` grid) indices
     indices :: [(Int, Int)]
     indices = map toPoint . sequence $ [[0..rows-1], [0..cols-1]]
     (rows, cols) = getDimensions grid
