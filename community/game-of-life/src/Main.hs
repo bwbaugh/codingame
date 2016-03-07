@@ -10,7 +10,7 @@ instance Show Grid where
         cellToChar Live = '1'
 
 main :: IO ()
-main = interact $ show . parseGrid . tail . lines
+main = interact $ show . nextState . parseGrid . tail . lines
 
 parseGrid :: [String] -> Grid
 parseGrid = Grid . map (map parseCell)
@@ -19,3 +19,6 @@ parseCell :: Char -> Cell
 parseCell '0' = Dead
 parseCell '1' = Live
 parseCell x = error $ "parseCell: unknown char: " ++ [x]
+
+nextState :: Grid -> Grid
+nextState = undefined
