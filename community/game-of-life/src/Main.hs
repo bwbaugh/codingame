@@ -1,17 +1,20 @@
 module Main where
 
 data Cell = Dead | Live
-type Grid = [[Cell]]
+newtype Grid = Grid [[Cell]]
 
 instance Show Cell where
     show Dead = "0"
     show Live = "1"
 
+instance Show Grid where
+    show (Grid xss) = unlines . map (concatMap show) $ xss
+
 main :: IO ()
-main = interact $ unlines . map (concatMap show) . parseGrid . tail . lines
+main = interact $ show . parseGrid . tail . lines
 
 parseGrid :: [String] -> Grid
-parseGrid = map (map parseCell)
+parseGrid = Grid . map (map parseCell)
 
 parseCell :: Char -> Cell
 parseCell '0' = Dead
