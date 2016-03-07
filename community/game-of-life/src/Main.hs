@@ -1,14 +1,13 @@
 module Main where
 
-data Cell = Dead | Live
+data Cell = Dead | Live deriving (Show)
 newtype Grid = Grid [[Cell]]
 
-instance Show Cell where
-    show Dead = "0"
-    show Live = "1"
-
 instance Show Grid where
-    show (Grid xss) = unlines . map (concatMap show) $ xss
+    show (Grid xss) = unlines . map (map cellToChar) $ xss
+      where
+        cellToChar Dead = '0'
+        cellToChar Live = '1'
 
 main :: IO ()
 main = interact $ show . parseGrid . tail . lines
