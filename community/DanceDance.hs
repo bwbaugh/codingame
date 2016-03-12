@@ -91,7 +91,7 @@ genLevel :: [LinePattern] -> Int -> [Pattern]
 genLevel ps duration = take duration $ map (genPattern ps) [1..]
 
 genPattern :: [LinePattern] -> Int -> Pattern
-genPattern ps index = foldr joinPattern empty $ map getPattern activePatterns
+genPattern ps index = foldr (joinPattern . getPattern) empty activePatterns
   where
     empty = replicate 4 Released
     activePatterns = filter isActive ps
