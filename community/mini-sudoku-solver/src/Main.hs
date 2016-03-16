@@ -38,7 +38,8 @@ module Main where
 import Control.Monad
 import Data.Char (digitToInt)
 
-type Grid = [[Int]]
+type Grid = [[Cell]]
+type Cell = Maybe Int
 
 main :: IO ()
 main = do
@@ -49,7 +50,15 @@ readGrid :: IO Grid
 readGrid = liftM parseGrid (replicateM 4 getLine)
 
 parseGrid :: [String] -> Grid
-parseGrid = map (map digitToInt)
+parseGrid = map (map parseCell)
+
+parseCell :: Char -> Cell
+parseCell '0' = Nothing
+parseCell x = Just (digitToInt x)
 
 showGrid :: Grid -> String
-showGrid = unlines . map (concatMap show)
+showGrid = unlines . map (concatMap showCell)
+
+showCell :: Cell -> String
+showCell (Just x) = show x
+showCell Nothing = "0"
