@@ -91,6 +91,13 @@ checkCols = all validRow . transpose
 validRow :: [Cell] -> Bool
 validRow row = all (`elem` row) (map Just [1..4])
 
--- TODO(2016-03-15): Implement check.
 checkCorners :: Grid -> Bool
-checkCorners _ = True
+checkCorners = checkRows . getCorners
+
+getCorners :: Grid -> [[Cell]]
+getCorners = ([topLeft, topRight, botLeft, botRight] <*>) . return
+  where
+    topLeft  = concatMap (take 2) . take 2
+    topRight = concatMap (drop 2) . take 2
+    botLeft  = concatMap (take 2) . drop 2
+    botRight = concatMap (drop 2) . drop 2
