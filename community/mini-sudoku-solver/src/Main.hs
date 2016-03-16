@@ -35,27 +35,15 @@ Output
 -}
 module Main where
 
-import System.IO
 import Control.Monad
+import Data.Char (digitToInt)
+
+type Grid = [[Int]]
 
 main :: IO ()
 main = do
-    hSetBuffering stdout NoBuffering -- DO NOT REMOVE
-    
-    -- Auto-generated code below aims at helping you parse
-    -- the standard input according to the problem statement.
-    
-    input_line <- getLine
-    let line1 = input_line :: String
-    input_line <- getLine
-    let line2 = input_line :: String
-    input_line <- getLine
-    let line3 = input_line :: String
-    input_line <- getLine
-    let line4 = input_line :: String
-    
-    -- hPutStrLn stderr "Debug messages..."
-    
-    -- Write answer to stdout
-    putStrLn "answer"
-    return ()
+    grid <- readGrid
+    putStr . unlines . map (concatMap show) $ grid
+
+readGrid :: IO Grid
+readGrid = replicateM 4 $ map digitToInt <$> getLine
