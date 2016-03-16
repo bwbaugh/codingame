@@ -44,9 +44,8 @@ type Cell = Maybe Int
 
 main :: IO ()
 main = do
-    grid <- readGrid
-    let solutions = possibleGrids grid
-    case solutions of
+    start <- readGrid
+    case possibleGrids start of
         [] -> putStrLn "NONE"
         (x:_) -> putStr $ showGrid x
 
@@ -68,8 +67,8 @@ showCell (Just x) = show x
 showCell Nothing = "0"
 
 possibleGrids :: Grid -> [Grid]
-possibleGrids grid = do
-    g <- forM grid $ \row -> do
+possibleGrids start = do
+    g <- forM start $ \row -> do
         r <- forM row $ \cell ->
             case cell of
                 Nothing -> map Just [1..4]
@@ -86,7 +85,7 @@ checkRows :: Grid -> Bool
 checkRows = all validRow
 
 checkCols :: Grid -> Bool
-checkCols = all validRow . transpose
+checkCols = checkRows . transpose
 
 validRow :: [Cell] -> Bool
 validRow row = all (`elem` row) (map Just [1..4])
