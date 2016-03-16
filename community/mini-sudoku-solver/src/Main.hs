@@ -43,10 +43,13 @@ type Grid = [[Int]]
 main :: IO ()
 main = do
     grid <- readGrid
-    putStr . unlines . map (concatMap show) $ grid
+    putStr $ showGrid grid
 
 readGrid :: IO Grid
 readGrid = replicateM 4 getLine >>= return . parseGrid
 
 parseGrid :: [String] -> Grid
 parseGrid = map (map digitToInt)
+
+showGrid :: Grid -> String
+showGrid = unlines . map (concatMap show)
