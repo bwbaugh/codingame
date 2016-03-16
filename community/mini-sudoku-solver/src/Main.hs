@@ -80,12 +80,17 @@ possibleGrids grid = do
     return g
 
 validGrid :: Grid -> Bool
-validGrid grid = checkRows && checkCols && checkCorners
-  where
-    checkRows = all validRow grid
-    checkCols = all validRow (transpose grid)
-    -- TODO(2016-03-15): Implement check.
-    checkCorners = True
+validGrid = and . ([checkRows, checkCols, checkCorners] <*>) . return
+
+checkRows :: Grid -> Bool
+checkRows = all validRow
+
+checkCols :: Grid -> Bool
+checkCols = all validRow . transpose
 
 validRow :: [Cell] -> Bool
 validRow row = all (`elem` row) (map Just [1..4])
+
+-- TODO(2016-03-15): Implement check.
+checkCorners :: Grid -> Bool
+checkCorners _ = True
