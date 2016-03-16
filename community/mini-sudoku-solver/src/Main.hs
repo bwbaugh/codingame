@@ -37,6 +37,7 @@ module Main where
 
 import Control.Monad
 import Data.Char (digitToInt)
+import Data.List (transpose)
 
 type Grid = [[Cell]]
 type Cell = Maybe Int
@@ -44,7 +45,10 @@ type Cell = Maybe Int
 main :: IO ()
 main = do
     grid <- readGrid
-    putStr $ showGrid grid
+    let solutions = possibleGrids grid
+    case solutions of
+        [] -> putStrLn "NONE"
+        (x:_) -> putStr $ showGrid x
 
 readGrid :: IO Grid
 readGrid = liftM parseGrid (replicateM 4 getLine)
@@ -62,3 +66,26 @@ showGrid = unlines . map (concatMap showCell)
 showCell :: Cell -> String
 showCell (Just x) = show x
 showCell Nothing = "0"
+
+possibleGrids :: Grid -> [Grid]
+possibleGrids grid = do
+    g <- forM grid $ \row -> do
+        r <- forM row $ \cell ->
+            case cell of
+                Nothing -> map Just [1..4]
+                x -> [x]
+        guard (validRow r)
+        return r
+    guard (validGrid g)
+    return g
+
+validGrid :: Grid -> Bool
+validGrid grid = checkRows && checkCols && checkCorners
+  where
+    checkRows = all validRow grid
+    checkCols = all validRow (transpose grid)
+    -- TODO(2016-03-15): Implement check.
+    checkCorners = True
+
+validRow :: [Cell] -> Bool
+validRow row = all (`elem` row) (map Just [1..4])
