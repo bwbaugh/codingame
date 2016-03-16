@@ -46,7 +46,7 @@ main = do
     putStr $ showGrid grid
 
 readGrid :: IO Grid
-readGrid = replicateM 4 getLine >>= return . parseGrid
+readGrid = liftM parseGrid (replicateM 4 getLine)
 
 parseGrid :: [String] -> Grid
 parseGrid = map (map digitToInt)
