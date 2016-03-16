@@ -46,4 +46,7 @@ main = do
     putStr . unlines . map (concatMap show) $ grid
 
 readGrid :: IO Grid
-readGrid = replicateM 4 $ map digitToInt <$> getLine
+readGrid = replicateM 4 getLine >>= return . parseGrid
+
+parseGrid :: [String] -> Grid
+parseGrid = map (map digitToInt)
