@@ -16,7 +16,7 @@ data Seen = Seen {
     , seenBot :: [Int]
     , seenLeft :: [Int]
     , seenRight :: [Int]
-    } deriving (Show)
+    } deriving (Eq, Show)
 
 main :: IO ()
 main = do
@@ -76,4 +76,7 @@ countMonsters :: Manor -> Count
 countMonsters = undefined
 
 checkSeen :: Manor -> Seen -> Bool
-checkSeen = undefined
+checkSeen = (==) . visibleMonsters
+
+visibleMonsters :: Manor -> Seen
+visibleMonsters = undefined
