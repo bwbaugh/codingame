@@ -54,4 +54,17 @@ showCell (Right Zombie) = "Z"
 showCell (Right Ghost) = "G"
 
 possibleSolutions :: Manor -> Count -> Seen -> [Manor]
-possibleSolutions = undefined
+possibleSolutions manor count seen = do
+    m <- forM manor $ \row ->
+        forM row $ \cell ->
+            case cell of
+                Nothing -> map (Just . Right) allMonsters
+                x -> [x]
+    guard $ validManor m count seen
+    return m
+
+allMonsters :: [Monster]
+allMonsters = [Vampire, Zombie, Ghost]
+
+validManor :: Manor -> Count -> Seen -> Bool
+validManor = undefined
