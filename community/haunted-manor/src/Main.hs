@@ -67,4 +67,10 @@ allMonsters :: [Monster]
 allMonsters = [Vampire, Zombie, Ghost]
 
 validManor :: Manor -> Count -> Seen -> Bool
-validManor = undefined
+validManor manor count seen = checkCount manor count && checkSeen manor seen
+
+checkCount :: Manor -> Count -> Bool
+checkCount = undefined
+
+checkSeen :: Manor -> Seen -> Bool
+checkSeen = undefined
