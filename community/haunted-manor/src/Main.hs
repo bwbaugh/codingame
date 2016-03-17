@@ -10,7 +10,7 @@ data Count = Count {
       numVampire :: Int
     , numZombie :: Int
     , numGhost :: Int
-    } deriving (Show)
+    } deriving (Eq, Show)
 data Seen = Seen {
       seenTop :: [Int]
     , seenBot :: [Int]
@@ -70,7 +70,10 @@ validManor :: Manor -> Count -> Seen -> Bool
 validManor manor count seen = checkCount manor count && checkSeen manor seen
 
 checkCount :: Manor -> Count -> Bool
-checkCount = undefined
+checkCount = (==) . countMonsters
+
+countMonsters :: Manor -> Count
+countMonsters = undefined
 
 checkSeen :: Manor -> Seen -> Bool
 checkSeen = undefined
