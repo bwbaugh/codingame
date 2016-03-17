@@ -1,11 +1,13 @@
 module Main where
 
 import Control.Monad
+import Data.Either
+import Data.Maybe
 
 type Manor = [[Maybe Cell]]
 type Cell = Either Mirror Monster
 data Mirror = DiagonalDown | DiagonalUp deriving (Show)
-data Monster = Vampire | Zombie | Ghost deriving (Show)
+data Monster = Vampire | Zombie | Ghost deriving (Eq, Show)
 data Count = Count {
       numVampire :: Int
     , numZombie :: Int
@@ -73,7 +75,10 @@ checkCount :: Manor -> Count -> Bool
 checkCount = (==) . countMonsters
 
 countMonsters :: Manor -> Count
-countMonsters = undefined
+countMonsters m = Count (count Vampire) (count Zombie) (count Ghost)
+  where
+    count :: Monster -> Int
+    count x = length . filter (== x) $ concatMap (rights . catMaybes) m
 
 checkSeen :: Manor -> Seen -> Bool
 checkSeen = (==) . visibleMonsters
