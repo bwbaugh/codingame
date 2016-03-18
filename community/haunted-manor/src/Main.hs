@@ -19,6 +19,7 @@ data Seen = Seen {
     , seenLeft :: [Int]
     , seenRight :: [Int]
     } deriving (Eq, Show)
+data Direction = South | North | East | West deriving (Show)
 
 main :: IO ()
 main = do
@@ -84,4 +85,43 @@ checkSeen :: Manor -> Seen -> Bool
 checkSeen = (==) . visibleMonsters
 
 visibleMonsters :: Manor -> Seen
-visibleMonsters = undefined
+visibleMonsters manor = Seen (go South) (go North) (go East) (go West)
+  where
+    go direction = map (visible . look manor direction) [0..length manor - 1]
+
+look :: Manor -> Direction -> Int -> [Cell]
+look manor South col =  path manor South 0 col
+look manor North col = path manor North (length manor - 1) col
+look manor East row = path manor East row 0
+look manor West row = path manor West row (length manor - 1)
+
+path :: Manor -> Direction -> Int -> Int -> [Cell]
+path manor direction row col
+    | row < 0 || row > size = []
+    | col < 0 || col > size = []
+    | otherwise = cell : path manor direction' row' col'
+  where
+    size = length manor - 1
+    cell = fromMaybe (error "path encountered empty cell") $ manor !! row !! col
+    direction' = newDirection direction cell
+    (row', col') = move direction' row col
+
+newDirection :: Direction -> Cell -> Direction
+newDirection South (Left DiagonalDown) = East
+newDirection South (Left DiagonalUp) = West
+newDirection North (Left DiagonalDown) = West
+newDirection North (Left DiagonalUp) = East
+newDirection East (Left DiagonalDown) = South
+newDirection East (Left DiagonalUp) = North
+newDirection West (Left DiagonalDown) = North
+newDirection West (Left DiagonalUp) = South
+newDirection direction _ = direction
+
+move :: Direction -> Int -> Int -> (Int, Int)
+move South row col = (row + 1, col)
+move North row col = (row - 1, col)
+move East row col = (row, col + 1)
+move West row col = (row, col - 1)
+
+visible :: [Cell] -> Int
+visible = undefined
