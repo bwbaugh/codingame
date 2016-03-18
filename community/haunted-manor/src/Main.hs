@@ -28,7 +28,7 @@ main = do
     size <- readLn
     [top, bot, left, right] <- replicateM 4 readWSV :: IO [[Int]]
     let seen = Seen top bot left right
-    manor <- liftM parseManor (replicateM size getLine)
+    manor <- readManor size
     case validSolutions manor count seen of
         [] -> putStrLn "NONE"
         (x:_) -> putStr $ showManor x
@@ -36,6 +36,9 @@ main = do
     -- | Whitespace Separated Values.
     readWSV :: Read a => IO [a]
     readWSV = fmap (map read . words) getLine
+
+readManor :: Int -> IO Manor
+readManor size = liftM parseManor (replicateM size getLine)
 
 parseManor :: [String] -> Manor
 parseManor = map (map parseCell)
