@@ -1,13 +1,16 @@
 module Main where
 
 import Control.Monad
-import Data.Either
-import Data.Maybe
 
-type Manor = [[Maybe Cell]]
-type Cell = Either Mirror Monster
-data Mirror = DiagonalDown | DiagonalUp deriving (Show)
-data Monster = Vampire | Zombie | Ghost deriving (Eq, Show)
+type Manor = [[Cell]]
+data Cell =
+      Empty
+    | DiagonalUp
+    | DiagonalDown
+    | Vampire
+    | Zombie
+    | Ghost
+    deriving (Eq, Show)
 data Count = Count {
       numVampire :: Int
     , numZombie :: Int
@@ -43,24 +46,25 @@ readManor size = liftM parseManor (replicateM size getLine)
 parseManor :: [String] -> Manor
 parseManor = map (map parseCell)
 
-parseCell :: Char -> Maybe Cell
-parseCell '.' = Nothing
-parseCell '\\' = Just (Left DiagonalDown)
-parseCell '/' = Just (Left DiagonalUp)
-parseCell 'V' = Just (Right Vampire)
-parseCell 'Z' = Just (Right Zombie)
-parseCell 'G' = Just (Right Ghost)
+parseCell :: Char -> Cell
+parseCell '.' = Empty
+parseCell '\\' = DiagonalDown
+parseCell '/' = DiagonalUp
+parseCell 'V' = Vampire
+parseCell 'Z' = Zombie
+parseCell 'G' = Ghost
 parseCell x = error $ "unexpected input grid char: " ++ [x]
 
 showManor :: Manor -> String
-showManor = unlines . map (concatMap (maybe "." showCell))
+showManor = unlines . map (concatMap showCell)
 
 showCell :: Cell -> String
-showCell (Left DiagonalDown) = "\\"
-showCell (Left DiagonalUp) = "/"
-showCell (Right Vampire) = "V"
-showCell (Right Zombie) = "Z"
-showCell (Right Ghost) = "G"
+showCell Empty = "."
+showCell DiagonalDown = "\\"
+showCell DiagonalUp = "/"
+showCell Vampire = "V"
+showCell Zombie = "Z"
+showCell Ghost = "G"
 
 validSolutions :: Manor -> Count -> Seen -> [Manor]
 validSolutions m c s = filter (validManor c s) $ possibleSolutions m
@@ -70,10 +74,10 @@ possibleSolutions manor =
     forM manor $ \row ->
         forM row $ \cell ->
             case cell of
-                Nothing -> map (Just . Right) allMonsters
+                Empty -> allMonsters
                 x -> [x]
 
-allMonsters :: [Monster]
+allMonsters :: [Cell]
 allMonsters = [Vampire, Zombie, Ghost]
 
 validManor :: Count -> Seen -> Manor -> Bool
@@ -85,8 +89,7 @@ checkCount = (==) . countMonsters
 countMonsters :: Manor -> Count
 countMonsters m = Count (count Vampire) (count Zombie) (count Ghost)
   where
-    count :: Monster -> Int
-    count x = length . filter (== x) $ concatMap (rights . catMaybes) m
+    count x = length . filter (== x) $ concat m
 
 checkSeen :: Manor -> Seen -> Bool
 checkSeen = (==) . visibleMonsters
@@ -109,19 +112,19 @@ path manor direction row col
     | otherwise = cell : path manor direction' row' col'
   where
     size = length manor - 1
-    cell = fromMaybe (error "path encountered empty cell") $ manor !! row !! col
+    cell = manor !! row !! col
     direction' = newDirection direction cell
     (row', col') = move direction' row col
 
 newDirection :: Direction -> Cell -> Direction
-newDirection South (Left DiagonalDown) = East
-newDirection South (Left DiagonalUp) = West
-newDirection North (Left DiagonalDown) = West
-newDirection North (Left DiagonalUp) = East
-newDirection East (Left DiagonalDown) = South
-newDirection East (Left DiagonalUp) = North
-newDirection West (Left DiagonalDown) = North
-newDirection West (Left DiagonalUp) = South
+newDirection South DiagonalDown = East
+newDirection South DiagonalUp = West
+newDirection North DiagonalDown = West
+newDirection North DiagonalUp = East
+newDirection East DiagonalDown = South
+newDirection East DiagonalUp = North
+newDirection West DiagonalDown = North
+newDirection West DiagonalUp = South
 newDirection direction _ = direction
 
 move :: Direction -> Int -> Int -> (Int, Int)
