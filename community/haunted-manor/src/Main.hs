@@ -23,6 +23,7 @@ data Seen = Seen {
     , seenRight :: [Int]
     } deriving (Eq, Show)
 data Direction = South | North | East | West deriving (Show)
+data Gaze = Direct | Mirror
 
 main :: IO ()
 main = do
@@ -134,4 +135,14 @@ move East row col = (row, col + 1)
 move West row col = (row, col - 1)
 
 visible :: [Cell] -> Int
-visible = undefined
+visible = go Direct
+  where
+    go _ [] = 0
+    go gaze (Empty:xs) = go gaze xs
+    go _ (DiagonalDown:xs) = go Mirror xs
+    go _ (DiagonalUp:xs) = go Mirror xs
+    go Direct (Vampire:xs) = 1 + go Direct xs
+    go Mirror (Vampire:xs) = go Mirror xs
+    go gaze (Zombie:xs) = 1 + go gaze xs
+    go Direct (Ghost:xs) = go Direct xs
+    go Mirror (Ghost:xs) = 1 + go Mirror xs
