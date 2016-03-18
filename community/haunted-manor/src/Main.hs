@@ -47,6 +47,9 @@ parseCell :: Char -> Maybe Cell
 parseCell '.' = Nothing
 parseCell '\\' = Just (Left DiagonalDown)
 parseCell '/' = Just (Left DiagonalUp)
+parseCell 'V' = Just (Right Vampire)
+parseCell 'Z' = Just (Right Zombie)
+parseCell 'G' = Just (Right Ghost)
 parseCell x = error $ "unexpected input grid char: " ++ [x]
 
 showManor :: Manor -> String
