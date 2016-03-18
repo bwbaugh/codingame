@@ -29,7 +29,7 @@ main = do
     [top, bot, left, right] <- replicateM 4 readWSV :: IO [[Int]]
     let seen = Seen top bot left right
     manor <- liftM parseManor (replicateM size getLine)
-    case possibleSolutions manor count seen of
+    case validSolutions manor count seen of
         [] -> putStrLn "NONE"
         (x:_) -> putStr $ showManor x
   where
@@ -56,21 +56,22 @@ showCell (Right Vampire) = "V"
 showCell (Right Zombie) = "Z"
 showCell (Right Ghost) = "G"
 
-possibleSolutions :: Manor -> Count -> Seen -> [Manor]
-possibleSolutions manor count seen = do
-    m <- forM manor $ \row ->
+validSolutions :: Manor -> Count -> Seen -> [Manor]
+validSolutions m c s = filter (validManor c s) $ possibleSolutions m
+
+possibleSolutions :: Manor -> [Manor]
+possibleSolutions manor =
+    forM manor $ \row ->
         forM row $ \cell ->
             case cell of
                 Nothing -> map (Just . Right) allMonsters
                 x -> [x]
-    guard $ validManor m count seen
-    return m
 
 allMonsters :: [Monster]
 allMonsters = [Vampire, Zombie, Ghost]
 
-validManor :: Manor -> Count -> Seen -> Bool
-validManor manor count seen = checkCount manor count && checkSeen manor seen
+validManor :: Count -> Seen -> Manor -> Bool
+validManor count seen manor = checkCount manor count && checkSeen manor seen
 
 checkCount :: Manor -> Count -> Bool
 checkCount = (==) . countMonsters
