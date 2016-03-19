@@ -3,10 +3,11 @@ module Main where
 import Control.Monad
 import Data.Foldable (toList)
 import Data.Maybe
-import qualified Data.Sequence as S
+import qualified Data.Vector as V
+import Data.Vector ((!))
 
-type Manor = S.Seq Row
-type Row = S.Seq Cell
+type Manor = V.Vector Row
+type Row = V.Vector Cell
 data Cell =
       Empty
     | DiagonalUp
@@ -49,7 +50,7 @@ readManor :: Int -> IO Manor
 readManor size = liftM parseManor (replicateM size getLine)
 
 parseManor :: [String] -> Manor
-parseManor = S.fromList . map (S.fromList . map parseCell)
+parseManor = V.fromList . map (V.fromList . map parseCell)
 
 parseCell :: Char -> Cell
 parseCell '.' = Empty
@@ -76,13 +77,13 @@ validSolutions m c s = filter (`checkSeen` s) $ possibleSolutions m c s
 
 possibleSolutions :: Manor -> Count -> Seen -> [Manor]
 possibleSolutions manor count seen =
-    map (\(m, _, _) -> m) $ foldM (genRow seen) (S.empty, count, -1) manor
+    map (\(m, _, _) -> m) $ foldM (genRow seen) (V.empty, count, -1) manor
 
 genRow :: Seen -> (Manor, Count, Int) -> Row -> [(Manor, Count, Int)]
 genRow seen (acc, count, idx) row = do
-    (row', count') <- foldM genCell (S.empty, count) row
+    (row', count') <- foldM genCell (V.empty, count) row
     let idx' = idx + 1
-        acc' = acc S.|> row'
+        acc' = acc `V.snoc` row'
         left = genSeen acc' East
         right = genSeen acc' West
         top = genSeen acc' South
@@ -96,7 +97,7 @@ genCell (acc, count) cell = do
     cell' <- case cell of
         Empty -> availableMonsters count
         x -> [x]
-    return (acc S.|> cell', subtractCell count cell')
+    return (acc `V.snoc` cell', subtractCell count cell')
 
 subtractCell :: Count -> Cell -> Count
 subtractCell (Count v z g) Vampire = Count (v - 1) z g
@@ -120,21 +121,21 @@ visibleMonsters manor = Seen (go South) (go North) (go East) (go West)
     go = genSeen manor
 
 genSeen :: Manor -> Direction -> [Int]
-genSeen m d = map (visible . look m d) [0..S.length m - 1]
+genSeen m d = map (visible . look m d) [0..V.length m - 1]
 
 look :: Manor -> Direction -> Int -> [Cell]
 look manor South col =  path manor South 0 col
-look manor North col = path manor North (S.length manor - 1) col
+look manor North col = path manor North (V.length manor - 1) col
 look manor East row = path manor East row 0
-look manor West row = path manor West row (S.length (S.index manor 0) - 1)
+look manor West row = path manor West row (V.length (manor ! 0) - 1)
 
 path :: Manor -> Direction -> Int -> Int -> [Cell]
 path manor direction row col
-    | row < 0 || row > S.length manor - 1 = []
-    | col < 0 || col > S.length (S.index manor 0) - 1 = []
+    | row < 0 || row > V.length manor - 1 = []
+    | col < 0 || col > V.length (manor ! 0) - 1 = []
     | otherwise = cell : path manor direction' row' col'
   where
-    cell = (manor `S.index` row) `S.index` col
+    cell = (manor ! row) ! col
     direction' = newDirection direction cell
     (row', col') = move direction' row col
 
