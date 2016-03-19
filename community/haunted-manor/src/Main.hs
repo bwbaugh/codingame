@@ -81,14 +81,17 @@ genRow (acc, count) row = do
     return (row' : acc, count')
 
 genCell :: ([Cell], Count) -> Cell -> [([Cell], Count)]
-genCell (acc, count@(Count v z g)) cell = do
+genCell (acc, count) cell = do
     cell' <- case cell of
         Empty -> availableMonsters count
         x -> [x]
-    return (cell' : acc, count')
-      where
-        count' = Count (v - v') (z - z') (g - g')
-        (Count v' z' g') = countMonsters [[cell]]
+    return (cell' : acc, subtractCell count cell')
+
+subtractCell :: Count -> Cell -> Count
+subtractCell (Count v z g) Vampire = Count (v - 1) z g
+subtractCell (Count v z g) Zombie = Count v (z - 1) g
+subtractCell (Count v z g) Ghost = Count v z (g - 1)
+subtractCell c _ = c
 
 availableMonsters :: Count -> [Cell]
 availableMonsters (Count v z g) = catMaybes [v', z', g']
