@@ -81,8 +81,10 @@ genRow seen (acc, count, idx) row = do
     let idx' = idx + 1
         acc' = acc ++ [row']
         left = genSeen acc' East
+        right = genSeen acc' West
         top = genSeen acc' South
     guard $ (left !! idx') <= seenLeft seen !! idx'
+    guard $ (right !! idx') <= seenRight seen !! idx'
     guard $ top <= seenTop seen
     return (acc', count', idx')
 
@@ -121,7 +123,7 @@ look :: Manor -> Direction -> Int -> [Cell]
 look manor South col =  path manor South 0 col
 look manor North col = path manor North (length manor - 1) col
 look manor East row = path manor East row 0
-look manor West row = path manor West row (length manor - 1)
+look manor West row = path manor West row (length (head manor) - 1)
 
 path :: Manor -> Direction -> Int -> Int -> [Cell]
 path manor direction row col
