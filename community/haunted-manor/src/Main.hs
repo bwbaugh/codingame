@@ -1,9 +1,12 @@
 module Main where
 
 import Control.Monad
+import Data.Foldable (toList)
 import Data.Maybe
+import qualified Data.Sequence as S
 
-type Manor = [[Cell]]
+type Manor = S.Seq Row
+type Row = S.Seq Cell
 data Cell =
       Empty
     | DiagonalUp
@@ -46,7 +49,7 @@ readManor :: Int -> IO Manor
 readManor size = liftM parseManor (replicateM size getLine)
 
 parseManor :: [String] -> Manor
-parseManor = map (map parseCell)
+parseManor = S.fromList . map (S.fromList . map parseCell)
 
 parseCell :: Char -> Cell
 parseCell '.' = Empty
@@ -58,7 +61,7 @@ parseCell 'G' = Ghost
 parseCell x = error $ "unexpected input grid char: " ++ [x]
 
 showManor :: Manor -> String
-showManor = unlines . map (concatMap showCell)
+showManor = unlines . map (concatMap showCell) . toList
 
 showCell :: Cell -> String
 showCell Empty = "."
@@ -73,13 +76,13 @@ validSolutions m c s = filter (`checkSeen` s) $ possibleSolutions m c s
 
 possibleSolutions :: Manor -> Count -> Seen -> [Manor]
 possibleSolutions manor count seen =
-    map (\(m, _, _) -> m) $ foldM (genRow seen) ([], count, -1) manor
+    map (\(m, _, _) -> m) $ foldM (genRow seen) (S.empty, count, -1) manor
 
-genRow :: Seen -> (Manor, Count, Int) -> [Cell] -> [(Manor, Count, Int)]
+genRow :: Seen -> (Manor, Count, Int) -> Row -> [(Manor, Count, Int)]
 genRow seen (acc, count, idx) row = do
-    (row', count') <- foldM genCell ([], count) row
+    (row', count') <- foldM genCell (S.empty, count) row
     let idx' = idx + 1
-        acc' = acc ++ [row']
+        acc' = acc S.|> row'
         left = genSeen acc' East
         right = genSeen acc' West
         top = genSeen acc' South
@@ -88,12 +91,12 @@ genRow seen (acc, count, idx) row = do
     guard $ top <= seenTop seen
     return (acc', count', idx')
 
-genCell :: ([Cell], Count) -> Cell -> [([Cell], Count)]
+genCell :: (Row, Count) -> Cell -> [(Row, Count)]
 genCell (acc, count) cell = do
     cell' <- case cell of
         Empty -> availableMonsters count
         x -> [x]
-    return (acc ++ [cell'], subtractCell count cell')
+    return (acc S.|> cell', subtractCell count cell')
 
 subtractCell :: Count -> Cell -> Count
 subtractCell (Count v z g) Vampire = Count (v - 1) z g
@@ -117,21 +120,21 @@ visibleMonsters manor = Seen (go South) (go North) (go East) (go West)
     go = genSeen manor
 
 genSeen :: Manor -> Direction -> [Int]
-genSeen m d = map (visible . look m d) [0..length m - 1]
+genSeen m d = map (visible . look m d) [0..S.length m - 1]
 
 look :: Manor -> Direction -> Int -> [Cell]
 look manor South col =  path manor South 0 col
-look manor North col = path manor North (length manor - 1) col
+look manor North col = path manor North (S.length manor - 1) col
 look manor East row = path manor East row 0
-look manor West row = path manor West row (length (head manor) - 1)
+look manor West row = path manor West row (S.length (S.index manor 0) - 1)
 
 path :: Manor -> Direction -> Int -> Int -> [Cell]
 path manor direction row col
-    | row < 0 || row > length manor - 1 = []
-    | col < 0 || col > length (head manor) - 1 = []
+    | row < 0 || row > S.length manor - 1 = []
+    | col < 0 || col > S.length (S.index manor 0) - 1 = []
     | otherwise = cell : path manor direction' row' col'
   where
-    cell = manor !! row !! col
+    cell = (manor `S.index` row) `S.index` col
     direction' = newDirection direction cell
     (row', col') = move direction' row col
 
