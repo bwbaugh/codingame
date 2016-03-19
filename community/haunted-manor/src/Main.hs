@@ -81,7 +81,9 @@ genRow seen (acc, count, idx) row = do
     let idx' = idx + 1
         acc' = acc ++ [row']
         left = genSeen acc' East
+        top = genSeen acc' South
     guard $ (left !! idx') <= seenLeft seen !! idx'
+    guard $ top <= seenTop seen
     return (acc', count', idx')
 
 genCell :: ([Cell], Count) -> Cell -> [([Cell], Count)]
@@ -123,11 +125,10 @@ look manor West row = path manor West row (length manor - 1)
 
 path :: Manor -> Direction -> Int -> Int -> [Cell]
 path manor direction row col
-    | row < 0 || row > size = []
-    | col < 0 || col > size = []
+    | row < 0 || row > length manor - 1 = []
+    | col < 0 || col > length (head manor) - 1 = []
     | otherwise = cell : path manor direction' row' col'
   where
-    size = length manor - 1
     cell = manor !! row !! col
     direction' = newDirection direction cell
     (row', col') = move direction' row col
