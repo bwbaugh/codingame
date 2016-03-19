@@ -69,15 +69,20 @@ showCell Zombie = "Z"
 showCell Ghost = "G"
 
 validSolutions :: Manor -> Count -> Seen -> [Manor]
-validSolutions m c s = filter (`checkSeen` s) $ possibleSolutions m c
+validSolutions m c s = filter (`checkSeen` s) $ possibleSolutions m c s
 
-possibleSolutions :: Manor -> Count -> [Manor]
-possibleSolutions manor count = map fst $ foldM genRow ([], count) manor
+possibleSolutions :: Manor -> Count -> Seen -> [Manor]
+possibleSolutions manor count seen =
+    map (\(m, _, _) -> m) $ foldM (genRow seen) ([], count, -1) manor
 
-genRow :: (Manor, Count) -> [Cell] -> [(Manor, Count)]
-genRow (acc, count) row = do
+genRow :: Seen -> (Manor, Count, Int) -> [Cell] -> [(Manor, Count, Int)]
+genRow seen (acc, count, idx) row = do
     (row', count') <- foldM genCell ([], count) row
-    return (acc ++ [row'], count')
+    let idx' = idx + 1
+        acc' = acc ++ [row']
+        left = genSeen acc' East
+    guard $ (left !! idx') <= seenLeft seen !! idx'
+    return (acc', count', idx')
 
 genCell :: ([Cell], Count) -> Cell -> [([Cell], Count)]
 genCell (acc, count) cell = do
@@ -105,7 +110,10 @@ checkSeen = (==) . visibleMonsters
 visibleMonsters :: Manor -> Seen
 visibleMonsters manor = Seen (go South) (go North) (go East) (go West)
   where
-    go direction = map (visible . look manor direction) [0..length manor - 1]
+    go = genSeen manor
+
+genSeen :: Manor -> Direction -> [Int]
+genSeen m d = map (visible . look m d) [0..length m - 1]
 
 look :: Manor -> Direction -> Int -> [Cell]
 look manor South col =  path manor South 0 col
