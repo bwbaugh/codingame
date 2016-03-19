@@ -72,20 +72,19 @@ validSolutions :: Manor -> Count -> Seen -> [Manor]
 validSolutions m c s = filter (`checkSeen` s) $ possibleSolutions m c
 
 possibleSolutions :: Manor -> Count -> [Manor]
-possibleSolutions manor count =
-    map (reverse . map reverse . fst) $ foldM genRow ([], count) manor
+possibleSolutions manor count = map fst $ foldM genRow ([], count) manor
 
 genRow :: (Manor, Count) -> [Cell] -> [(Manor, Count)]
 genRow (acc, count) row = do
     (row', count') <- foldM genCell ([], count) row
-    return (row' : acc, count')
+    return (acc ++ [row'], count')
 
 genCell :: ([Cell], Count) -> Cell -> [([Cell], Count)]
 genCell (acc, count) cell = do
     cell' <- case cell of
         Empty -> availableMonsters count
         x -> [x]
-    return (cell' : acc, subtractCell count cell')
+    return (acc ++ [cell'], subtractCell count cell')
 
 subtractCell :: Count -> Cell -> Count
 subtractCell (Count v z g) Vampire = Count (v - 1) z g
