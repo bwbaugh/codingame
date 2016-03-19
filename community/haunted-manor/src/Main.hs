@@ -1,6 +1,7 @@
 module Main where
 
 import Control.Monad
+import Data.Maybe
 
 type Manor = [[Cell]]
 data Cell =
@@ -68,18 +69,33 @@ showCell Zombie = "Z"
 showCell Ghost = "G"
 
 validSolutions :: Manor -> Count -> Seen -> [Manor]
-validSolutions m c s = filter (validManor c s) $ possibleSolutions m
+validSolutions m c s = filter (validManor c s) $ possibleSolutions m c
 
-possibleSolutions :: Manor -> [Manor]
-possibleSolutions manor =
-    forM manor $ \row ->
-        forM row $ \cell ->
-            case cell of
-                Empty -> allMonsters
-                x -> [x]
+possibleSolutions :: Manor -> Count -> [Manor]
+possibleSolutions manor count =
+    map (reverse . map reverse . fst) $ foldM genRow ([], count) manor
 
-allMonsters :: [Cell]
-allMonsters = [Vampire, Zombie, Ghost]
+genRow :: (Manor, Count) -> [Cell] -> [(Manor, Count)]
+genRow (acc, count) row = do
+    (row', count') <- foldM genCell ([], count) row
+    return (row' : acc, count')
+
+genCell :: ([Cell], Count) -> Cell -> [([Cell], Count)]
+genCell (acc, count@(Count v z g)) cell = do
+    cell' <- case cell of
+        Empty -> availableMonsters count
+        x -> [x]
+    return (cell' : acc, count')
+      where
+        count' = Count (v - v') (z - z') (g - g')
+        (Count v' z' g') = countMonsters [[cell]]
+
+availableMonsters :: Count -> [Cell]
+availableMonsters (Count v z g) = catMaybes [v', z', g']
+  where
+    v' = if v > 0 then Just Vampire else Nothing
+    z' = if z > 0 then Just Zombie else Nothing
+    g' = if g > 0 then Just Ghost else Nothing
 
 validManor :: Count -> Seen -> Manor -> Bool
 validManor count seen manor = checkCount manor count && checkSeen manor seen
