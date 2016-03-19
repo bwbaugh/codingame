@@ -69,7 +69,7 @@ showCell Zombie = "Z"
 showCell Ghost = "G"
 
 validSolutions :: Manor -> Count -> Seen -> [Manor]
-validSolutions m c s = filter (validManor c s) $ possibleSolutions m c
+validSolutions m c s = filter (`checkSeen` s) $ possibleSolutions m c
 
 possibleSolutions :: Manor -> Count -> [Manor]
 possibleSolutions manor count =
@@ -99,17 +99,6 @@ availableMonsters (Count v z g) = catMaybes [v', z', g']
     v' = if v > 0 then Just Vampire else Nothing
     z' = if z > 0 then Just Zombie else Nothing
     g' = if g > 0 then Just Ghost else Nothing
-
-validManor :: Count -> Seen -> Manor -> Bool
-validManor count seen manor = checkCount manor count && checkSeen manor seen
-
-checkCount :: Manor -> Count -> Bool
-checkCount = (==) . countMonsters
-
-countMonsters :: Manor -> Count
-countMonsters m = Count (count Vampire) (count Zombie) (count Ghost)
-  where
-    count x = length . filter (== x) $ concat m
 
 checkSeen :: Manor -> Seen -> Bool
 checkSeen = (==) . visibleMonsters
