@@ -3,19 +3,13 @@ module Main where
 import Control.Monad
 import Data.Foldable (toList)
 import Data.Maybe
-import qualified Data.Vector as V
-import Data.Vector ((!))
+import qualified Data.Vector.Unboxed as V
+import Data.Vector.Unboxed ((!))
 
 type Manor = V.Vector Row
 type Row = V.Vector Cell
-data Cell =
-      Empty
-    | DiagonalUp
-    | DiagonalDown
-    | Vampire
-    | Zombie
-    | Ghost
-    deriving (Eq, Show)
+type Cell = Int
+(empty:diagonalup:diagonaldown:vampire:zombie:ghost:_) = [1..]
 data Count = Count {
       numVampire :: Int
     , numZombie :: Int
@@ -28,7 +22,7 @@ data Seen = Seen {
     , seenRight :: [Int]
     } deriving (Eq, Show)
 data Direction = South | North | East | West deriving (Show)
-data Gaze = Direct | Mirror
+data Gaze = Direct | Mirror deriving (Eq)
 
 main :: IO ()
 main = do
@@ -53,24 +47,25 @@ parseManor :: [String] -> Manor
 parseManor = V.fromList . map (V.fromList . map parseCell)
 
 parseCell :: Char -> Cell
-parseCell '.' = Empty
-parseCell '\\' = DiagonalDown
-parseCell '/' = DiagonalUp
-parseCell 'V' = Vampire
-parseCell 'Z' = Zombie
-parseCell 'G' = Ghost
+parseCell '.' = empty
+parseCell '\\' = diagonaldown
+parseCell '/' = diagonalup
+parseCell 'V' = vampire
+parseCell 'Z' = zombie
+parseCell 'G' = ghost
 parseCell x = error $ "unexpected input grid char: " ++ [x]
 
 showManor :: Manor -> String
 showManor = unlines . map (concatMap showCell) . toList
 
 showCell :: Cell -> String
-showCell Empty = "."
-showCell DiagonalDown = "\\"
-showCell DiagonalUp = "/"
-showCell Vampire = "V"
-showCell Zombie = "Z"
-showCell Ghost = "G"
+showCell cell
+    | cell == empty = "."
+    | cell == diagonaldown = "\\"
+    | cell == diagonalup = "/"
+    | cell == vampire = "V"
+    | cell == zombie = "Z"
+    | cell == ghost = "G"
 
 validSolutions :: Manor -> Count -> Seen -> [Manor]
 validSolutions m c s = filter (`checkSeen` s) $ possibleSolutions m c s
@@ -94,23 +89,22 @@ genRow seen (acc, count, idx) row = do
 
 genCell :: (Row, Count) -> Cell -> [(Row, Count)]
 genCell (acc, count) cell = do
-    cell' <- case cell of
-        Empty -> availableMonsters count
-        x -> [x]
+    cell' <- if cell == empty then availableMonsters count else [cell]
     return (acc `V.snoc` cell', subtractCell count cell')
 
 subtractCell :: Count -> Cell -> Count
-subtractCell (Count v z g) Vampire = Count (v - 1) z g
-subtractCell (Count v z g) Zombie = Count v (z - 1) g
-subtractCell (Count v z g) Ghost = Count v z (g - 1)
-subtractCell c _ = c
+subtractCell count@(Count v z g) cell
+    | cell == vampire = Count (v - 1) z g
+    | cell == zombie = Count v (z - 1) g
+    | cell == ghost = Count v z (g - 1)
+    | otherwise = count
 
 availableMonsters :: Count -> [Cell]
 availableMonsters (Count v z g) = catMaybes [v', z', g']
   where
-    v' = if v > 0 then Just Vampire else Nothing
-    z' = if z > 0 then Just Zombie else Nothing
-    g' = if g > 0 then Just Ghost else Nothing
+    v' = if v > 0 then Just vampire else Nothing
+    z' = if z > 0 then Just zombie else Nothing
+    g' = if g > 0 then Just ghost else Nothing
 
 checkSeen :: Manor -> Seen -> Bool
 checkSeen = (==) . visibleMonsters
@@ -140,15 +134,22 @@ path manor direction row col
     (row', col') = move direction' row col
 
 newDirection :: Direction -> Cell -> Direction
-newDirection South DiagonalDown = East
-newDirection South DiagonalUp = West
-newDirection North DiagonalDown = West
-newDirection North DiagonalUp = East
-newDirection East DiagonalDown = South
-newDirection East DiagonalUp = North
-newDirection West DiagonalDown = North
-newDirection West DiagonalUp = South
-newDirection direction _ = direction
+newDirection South cell
+    | cell == diagonaldown = East
+    | cell == diagonalup = West
+    | otherwise = South
+newDirection North cell
+    | cell == diagonaldown = West
+    | cell == diagonalup = East
+    | otherwise = North
+newDirection East cell
+    | cell == diagonaldown = South
+    | cell == diagonalup = North
+    | otherwise = East
+newDirection West cell
+    | cell == diagonaldown = North
+    | cell == diagonalup = South
+    | otherwise = West
 
 move :: Direction -> Int -> Int -> (Int, Int)
 move South row col = (row + 1, col)
@@ -160,11 +161,13 @@ visible :: [Cell] -> Int
 visible = go Direct
   where
     go _ [] = 0
-    go gaze (Empty:xs) = go gaze xs
-    go _ (DiagonalDown:xs) = go Mirror xs
-    go _ (DiagonalUp:xs) = go Mirror xs
-    go Direct (Vampire:xs) = 1 + go Direct xs
-    go Mirror (Vampire:xs) = go Mirror xs
-    go gaze (Zombie:xs) = 1 + go gaze xs
-    go Direct (Ghost:xs) = go Direct xs
-    go Mirror (Ghost:xs) = 1 + go Mirror xs
+    go gaze (c:xs)
+        | c == empty = go gaze xs
+        | c == diagonaldown = go Mirror xs
+        | c == diagonalup = go Mirror xs
+        | c == vampire && gaze == Direct = 1 + go Direct xs
+        | c == vampire && gaze == Mirror = go Mirror xs
+        | c == zombie = 1 + go gaze xs
+        | c == ghost && gaze == Direct = go Direct xs
+        | c == ghost && gaze == Mirror = 1 + go Mirror xs
+        | otherwise = error "visible non-exhaustive"
