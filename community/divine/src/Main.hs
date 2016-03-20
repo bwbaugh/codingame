@@ -77,8 +77,18 @@ getAlignments grid (row, column) =
     hLeft = [ grid U.!? toIdx (row, column - 2)
             , grid U.!? toIdx (row, column - 1)
             , grid U.!? toIdx (row, column) ]
-    hMid = undefined
-    hRight = undefined
-    vTop = undefined
-    vMid = undefined
-    vBot = undefined
+    hMid = [ grid U.!? toIdx (row, column - 1)
+           , grid U.!? toIdx (row, column)
+           , grid U.!? toIdx (row, column + 1) ]
+    hRight = [ grid U.!? toIdx (row, column)
+           , grid U.!? toIdx (row, column + 1)
+           , grid U.!? toIdx (row, column + 2) ]
+    vTop = [ grid U.!? toIdx (row - 2, column)
+           , grid U.!? toIdx (row - 1, column)
+           , grid U.!? toIdx (row, column) ]
+    vMid = [ grid U.!? toIdx (row - 1, column)
+           , grid U.!? toIdx (row, column)
+           , grid U.!? toIdx (row + 1, column) ]
+    vBot = [ grid U.!? toIdx (row, column)
+           , grid U.!? toIdx (row + 1, column)
+           , grid U.!? toIdx (row + 2, column) ]
