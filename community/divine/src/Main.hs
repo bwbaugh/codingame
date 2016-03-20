@@ -25,15 +25,6 @@ readGrid = liftM parseGrid (replicateM 9 getLine)
 parseGrid :: [String] -> Grid
 parseGrid = U.fromList . map digitToInt . concat . words . unlines
 
-getCell :: Grid -> (Int, Int) -> Int
-getCell grid point = grid ! (fromJust . toIdx) point
-
-toIdx :: (Int, Int) -> Maybe Int
-toIdx (row, column)
-    | row < 0 || column < 0 = Nothing
-    | row > 8 || column > 8 = Nothing
-    | otherwise = Just (row * 9 + column)
-
 validPairs :: Grid -> [Pair]
 validPairs grid = filter (checkPair grid) allPairs
 
@@ -68,6 +59,15 @@ swap grid u v = grid U.// [(i1, v2), (i2, v1)]
   where
     [i1, i2] = map (fromJust . toIdx) [u, v]
     [v1, v2] = map (getCell grid) [u, v]
+
+getCell :: Grid -> (Int, Int) -> Int
+getCell grid point = grid ! (fromJust . toIdx) point
+
+toIdx :: (Int, Int) -> Maybe Int
+toIdx (row, column)
+    | row < 0 || column < 0 = Nothing
+    | row > 8 || column > 8 = Nothing
+    | otherwise = Just (row * 9 + column)
 
 getAlignments :: Grid -> (Int, Int) -> [(Int, Int, Int)]
 getAlignments grid (row, column) =
