@@ -70,4 +70,14 @@ swap grid u v = grid U.// [(i1, v2), (i2, v1)]
     [v1, v2] = map (getCell grid) [u, v]
 
 getAlignments :: Grid -> (Int, Int) -> [(Int, Int, Int)]
-getAlignments = undefined
+getAlignments grid _ =
+    map ((\[a, b, c] -> (a, b, c)) . map (getCell grid)) .
+    filter ((== 3) . length) $
+       map catMaybes [hLeft, hMid, hRight, vTop, vMid, vBot]
+  where
+    hLeft = undefined
+    hMid = undefined
+    hRight = undefined
+    vTop = undefined
+    vMid = undefined
+    vBot = undefined
