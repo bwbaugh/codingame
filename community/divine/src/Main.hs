@@ -2,7 +2,7 @@ module Main where
 
 import Control.Monad
 import Data.Char (digitToInt)
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, fromJust, mapMaybe)
 import Data.Vector.Unboxed ((!))
 import qualified Data.Vector.Unboxed as U
 
@@ -26,10 +26,13 @@ parseGrid :: [String] -> Grid
 parseGrid = U.fromList . map digitToInt . concat . words . unlines
 
 getCell :: Grid -> (Int, Int) -> Int
-getCell grid point = grid ! toIdx point
+getCell grid point = grid ! (fromJust . toIdx) point
 
-toIdx :: (Int, Int) -> Int
-toIdx (row, column) = row * 9 + column
+toIdx :: (Int, Int) -> Maybe Int
+toIdx (row, column)
+    | row < 0 || column < 0 = Nothing
+    | row > 8 || column > 8 = Nothing
+    | otherwise = Just (row * 9 + column)
 
 validPairs :: Grid -> [Pair]
 validPairs grid = filter (checkPair grid) allPairs
@@ -66,29 +69,30 @@ checkPair grid (u, v) =
 swap :: Grid -> (Int, Int) -> (Int, Int) -> Grid
 swap grid u v = grid U.// [(i1, v2), (i2, v1)]
   where
-    [i1, i2] = map toIdx [u, v]
+    [i1, i2] = map (fromJust . toIdx) [u, v]
     [v1, v2] = map (getCell grid) [u, v]
 
 getAlignments :: Grid -> (Int, Int) -> [(Int, Int, Int)]
 getAlignments grid (row, column) =
     map (\[a, b, c] -> (a, b, c)) . filter ((== 3) . length) $
-       map catMaybes [hLeft, hMid, hRight, vTop, vMid, vBot]
+        map (mapMaybe (maybe Nothing (grid U.!?) . toIdx))
+            [hLeft, hMid, hRight, vTop, vMid, vBot]
   where
-    hLeft = [ grid U.!? toIdx (row, column - 2)
-            , grid U.!? toIdx (row, column - 1)
-            , grid U.!? toIdx (row, column) ]
-    hMid = [ grid U.!? toIdx (row, column - 1)
-           , grid U.!? toIdx (row, column)
-           , grid U.!? toIdx (row, column + 1) ]
-    hRight = [ grid U.!? toIdx (row, column)
-           , grid U.!? toIdx (row, column + 1)
-           , grid U.!? toIdx (row, column + 2) ]
-    vTop = [ grid U.!? toIdx (row - 2, column)
-           , grid U.!? toIdx (row - 1, column)
-           , grid U.!? toIdx (row, column) ]
-    vMid = [ grid U.!? toIdx (row - 1, column)
-           , grid U.!? toIdx (row, column)
-           , grid U.!? toIdx (row + 1, column) ]
-    vBot = [ grid U.!? toIdx (row, column)
-           , grid U.!? toIdx (row + 1, column)
-           , grid U.!? toIdx (row + 2, column) ]
+    hLeft = [ (row, column - 2)
+            , (row, column - 1)
+            , (row, column) ]
+    hMid = [ (row, column - 1)
+           , (row, column)
+           , (row, column + 1) ]
+    hRight = [ (row, column)
+           , (row, column + 1)
+           , (row, column + 2) ]
+    vTop = [ (row - 2, column)
+           , (row - 1, column)
+           , (row, column) ]
+    vMid = [ (row - 1, column)
+           , (row, column)
+           , (row + 1, column) ]
+    vBot = [ (row, column)
+           , (row + 1, column)
+           , (row + 2, column) ]
