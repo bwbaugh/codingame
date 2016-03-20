@@ -30,4 +30,10 @@ getCell grid (row, column) = grid ! idx
     idx = row * 9 + column
 
 validPairs :: Grid -> [Pair]
-validPairs = undefined
+validPairs grid = filter (checkPair grid) $ genPairs grid
+
+genPairs :: Grid -> [Pair]
+genPairs = undefined
+
+checkPair :: Grid -> Pair -> Bool
+checkPair = undefined
