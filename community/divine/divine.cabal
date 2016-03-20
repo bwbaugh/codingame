@@ -3,7 +3,7 @@ version:             0.1.0.0
 synopsis:            Simple project template from stack
 description:         Please see README.md
 homepage:            http://github.com/bwbaugh/divine#readme
-license:             BSD3
+license:             AllRightsReserved
 license-file:        LICENSE
 author:              Wesley Baugh
 maintainer:          wesley@bwbaugh.com
