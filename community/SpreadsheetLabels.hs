@@ -27,6 +27,7 @@ Input
 Output
 A Z AA AZ BA ZZ
 -} 
+import Data.Char
 import Data.Maybe
 
 main :: IO ()
@@ -34,18 +35,13 @@ main = interact $ unwords . map convert . tail . words
 
 convert :: String -> String
 convert xs
-    | head xs `elem` ['A'..'Z'] = show $ toIndex xs
+    | isAlpha (head xs) = show $ toIndex xs
     | otherwise = toLabel (read xs)
 
--- TODO(2016-03-20): Don't use an infinite list for performance reasons.
 toIndex :: String -> Int
-toIndex = fromJust . flip lookup byLabel
-
-byLabel :: [(String, Int)]
-byLabel = zip labels [1..]
-
-labels :: [String]
-labels = concatMap (sequence . flip replicate ['A'..'Z']) [1..]
+toIndex xs =
+    sum $ map (\(x, p) -> x * 26 ^ p) $
+    zip (foldl (\acc x -> ord x - ord 'A' + 1 : acc) [] xs) [0..]
 
 toLabel :: Int -> String
 toLabel 0 = ""
