@@ -31,4 +31,12 @@ main :: IO ()
 main = interact $ unwords . map convert . tail . words
 
 convert :: String -> String
-convert = undefined
+convert xs
+    | head xs `elem` ['A'..'Z'] = show $ toIndex xs
+    | otherwise = toLabel (read xs)
+
+toIndex :: String -> Int
+toIndex = undefined
+
+toLabel :: Int -> String
+toLabel = undefined
