@@ -1,22 +1,18 @@
 module Main where
 
-import System.IO
 import Control.Monad
+import Data.Char (digitToInt)
+import qualified Data.Vector.Unboxed as U
+
+type Grid = U.Vector Int
 
 main :: IO ()
 main = do
-    hSetBuffering stdout NoBuffering -- DO NOT REMOVE
-    
-    -- Auto-generated code below aims at helping you parse
-    -- the standard input according to the problem statement.
-    
-    
-    replicateM 9 $ do
-        l <- getLine
-        return ()
-    
-    -- hPutStrLn stderr "Debug messages..."
-    
-    -- Write answer to stdout
-    putStrLn "answer"
-    return ()
+    _ <- readGrid
+    putStrLn "0"
+
+readGrid :: IO Grid
+readGrid = liftM parseGrid (replicateM 9 getLine)
+
+parseGrid :: [String] -> Grid
+parseGrid = U.fromList . map digitToInt . concat . words . unlines
