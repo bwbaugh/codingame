@@ -27,20 +27,6 @@ Input
 Output
 1
 -}
-import Control.Monad
-import System.IO
-
-main :: IO ()
-main = do
-    hSetBuffering stdout NoBuffering -- DO NOT REMOVE
-    input_line <- getLine
-    let n = read input_line :: Int -- the number of temperatures to analyse
-    temps_line <- getLine
-    -- the N temperatures expressed as integers ranging from -273 to 5526
-    let temps = map read $ words temps_line :: [Int]
-    putStrLn $ show $ analyze temps
-
-analyze :: [Int] -> Int
-analyze [] = 0
-analyze temps = maximum [x | x <- temps, abs x == bestTemp]
-    where bestTemp = minimum [abs x | x <- temps]
+main=interact$show.a.map read.tail.words
+a[]=0
+a s=maximum[x|x<-s,abs x==minimum(map abs s)]
