@@ -27,23 +27,20 @@ Input
 Output
 1
 -}
-import System.IO
 import Control.Monad
+import System.IO
 
 main :: IO ()
 main = do
     hSetBuffering stdout NoBuffering -- DO NOT REMOVE
-    
-    -- Auto-generated code below aims at helping you parse
-    -- the standard input according to the problem statement.
-    
     input_line <- getLine
     let n = read input_line :: Int -- the number of temperatures to analyse
-    temps <- getLine
-    -- the n temperatures expressed as integers ranging from -273 to 5526. Feel free to read the input differently.
-    
-    -- hPutStrLn stderr "Debug messages..."
-    
-    -- Write answer to stdout
-    putStrLn "result"
-    return ()
+    temps_line <- getLine
+    -- the N temperatures expressed as integers ranging from -273 to 5526
+    let temps = map read $ words temps_line :: [Int]
+    putStrLn $ show $ analyze temps
+
+analyze :: [Int] -> Int
+analyze [] = 0
+analyze temps = maximum [x | x <- temps, abs x == bestTemp]
+    where bestTemp = minimum [abs x | x <- temps]
