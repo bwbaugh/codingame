@@ -2,6 +2,7 @@ module Main where
 
 import Control.Monad
 import Data.Char (digitToInt)
+import Data.Maybe (catMaybes)
 import Data.Vector.Unboxed ((!))
 import qualified Data.Vector.Unboxed as U
 
@@ -41,8 +42,18 @@ allPairs = do
 allIndices :: [(Int, Int)]
 allIndices = map (`divMod` 9) [0..81 - 1]
 
+-- | Only the neighbors to the right and below are returned so that
+-- each undirected pair is only considered once and in lexical order.
+--
+-- For example:
+--
+-- >>> filter (\(a, b) -> a == (5, 7) || b == (5, 7)) allPairs
+-- [((4,7),(5,7)),((5,6),(5,7)),((5,7),(5,8)),((5,7),(6,7))]
 getAdjacent :: (Int, Int) -> [(Int, Int)]
-getAdjacent = undefined
+getAdjacent (row, column) = catMaybes [right, below]
+  where
+    right = if column + 1 < 9 then Just (row, column + 1) else Nothing
+    below = if row + 1 < 9 then Just (row + 1, column) else Nothing
 
 checkPair :: Grid -> Pair -> Bool
 checkPair = undefined
