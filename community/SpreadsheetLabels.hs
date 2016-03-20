@@ -40,8 +40,7 @@ convert xs
 
 toIndex :: String -> Int
 toIndex xs =
-    sum $ map (\(x, p) -> x * 26 ^ p) $
-    zip (foldl (\acc x -> ord x - ord 'A' + 1 : acc) [] xs) [0..]
+    sum $ zipWith (\x p -> (ord x - ord 'A' + 1) * 26 ^ p) (reverse xs) [0..]
 
 toLabel :: Int -> String
 toLabel 0 = ""
