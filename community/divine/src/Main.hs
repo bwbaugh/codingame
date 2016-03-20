@@ -56,4 +56,9 @@ getAdjacent (row, column) = catMaybes [right, below]
     below = if row + 1 < 9 then Just (row + 1, column) else Nothing
 
 checkPair :: Grid -> Pair -> Bool
-checkPair = undefined
+checkPair grid (u, v) =
+    any (any (\(a, b, c) -> a == b && a == c))
+        (map (getAlignments grid) [u, v])
+
+getAlignments :: Grid -> (Int, Int) -> [(Int, Int, Int)]
+getAlignments = undefined
