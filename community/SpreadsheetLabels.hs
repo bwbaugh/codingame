@@ -27,6 +27,8 @@ Input
 Output
 A Z AA AZ BA ZZ
 -} 
+import Data.Maybe
+
 main :: IO ()
 main = interact $ unwords . map convert . tail . words
 
@@ -36,7 +38,10 @@ convert xs
     | otherwise = toLabel (read xs)
 
 toIndex :: String -> Int
-toIndex = undefined
+toIndex = fromJust . flip lookup byLabel
+
+byLabel :: [(String, Int)]
+byLabel = undefined
 
 toLabel :: Int -> String
 toLabel = undefined
