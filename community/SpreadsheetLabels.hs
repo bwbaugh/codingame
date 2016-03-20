@@ -48,4 +48,8 @@ labels :: [String]
 labels = concatMap (sequence . flip replicate ['A'..'Z']) [1..]
 
 toLabel :: Int -> String
-toLabel = undefined
+toLabel 0 = ""
+toLabel x = toLabel d ++ [fromJust (lookup m table)]
+  where
+    table = zip [0..] ['A'..'Z']
+    (d, m) = (x - 1) `divMod` 26
