@@ -26,9 +26,10 @@ parseGrid :: [String] -> Grid
 parseGrid = U.fromList . map digitToInt . concat . words . unlines
 
 getCell :: Grid -> (Int, Int) -> Int
-getCell grid (row, column) = grid ! idx
-  where
-    idx = row * 9 + column
+getCell grid point = grid ! toIdx point
+
+toIdx :: (Int, Int) -> Int
+toIdx (row, column) = row * 9 + column
 
 validPairs :: Grid -> [Pair]
 validPairs grid = filter (checkPair grid) allPairs
@@ -58,7 +59,15 @@ getAdjacent (row, column) = catMaybes [right, below]
 checkPair :: Grid -> Pair -> Bool
 checkPair grid (u, v) =
     any (any (\(a, b, c) -> a == b && a == c))
-        (map (getAlignments grid) [u, v])
+        (map (getAlignments grid') [u, v])
+  where
+    grid' = swap grid u v
+
+swap :: Grid -> (Int, Int) -> (Int, Int) -> Grid
+swap grid u v = grid U.// [(i1, v2), (i2, v1)]
+  where
+    [i1, i2] = map toIdx [u, v]
+    [v1, v2] = map (getCell grid) [u, v]
 
 getAlignments :: Grid -> (Int, Int) -> [(Int, Int, Int)]
 getAlignments = undefined
