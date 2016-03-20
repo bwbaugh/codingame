@@ -30,10 +30,19 @@ getCell grid (row, column) = grid ! idx
     idx = row * 9 + column
 
 validPairs :: Grid -> [Pair]
-validPairs grid = filter (checkPair grid) $ genPairs grid
+validPairs grid = filter (checkPair grid) allPairs
 
-genPairs :: Grid -> [Pair]
-genPairs = undefined
+allPairs :: [Pair]
+allPairs = do
+    start <- allIndices
+    neighbor <- getAdjacent start
+    return (start, neighbor)
+
+allIndices :: [(Int, Int)]
+allIndices = map (`divMod` 9) [0..81 - 1]
+
+getAdjacent :: (Int, Int) -> [(Int, Int)]
+getAdjacent = undefined
 
 checkPair :: Grid -> Pair -> Bool
 checkPair = undefined
