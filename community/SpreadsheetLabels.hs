@@ -37,11 +37,15 @@ convert xs
     | head xs `elem` ['A'..'Z'] = show $ toIndex xs
     | otherwise = toLabel (read xs)
 
+-- TODO(2016-03-20): Don't use an infinite list for performance reasons.
 toIndex :: String -> Int
 toIndex = fromJust . flip lookup byLabel
 
 byLabel :: [(String, Int)]
-byLabel = undefined
+byLabel = zip labels [1..]
+
+labels :: [String]
+labels = concatMap (sequence . flip replicate ['A'..'Z']) [1..]
 
 toLabel :: Int -> String
 toLabel = undefined
