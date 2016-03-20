@@ -38,10 +38,7 @@ validPairs :: Grid -> [Pair]
 validPairs grid = filter (checkPair grid) allPairs
 
 allPairs :: [Pair]
-allPairs = do
-    start <- allIndices
-    neighbor <- getAdjacent start
-    return (start, neighbor)
+allPairs = [(u, v) | u <- allIndices, v <- getAdjacent u]
 
 allIndices :: [(Int, Int)]
 allIndices = map (`divMod` 9) [0..81 - 1]
