@@ -1,6 +1,10 @@
 import Control.Monad
 import System.IO
 
+type Position = (Int, Int)
+type Zone = Position
+type Drone = Position
+
 main :: IO ()
 main = do
     hSetBuffering stdout NoBuffering
@@ -12,7 +16,7 @@ main = do
     zones <- replicateM numZones $
         -- corresponds to the position of the center of a zone. A zone
         -- is a circle with a radius of 100 units.
-        fmap ((\[x, y] -> (x, y)) . map read . words) getLine :: IO [(Int, Int)]
+        fmap ((\[x, y] -> (x, y)) . map read . words) getLine
     forever $ do
         -- ID of the team controlling the zone (0, 1, 2, or 3) or -1 if
         -- it is not controlled. The zones are given in the same order
@@ -25,10 +29,13 @@ main = do
                 -- those of the drones of player 1, and thus it
                 -- continues until the last player.
                 fmap ((\[x, y] -> (x, y)) . map read . words) getLine
-                :: IO [[(Int, Int)]]
-        replicateM numDrones $
+        forM_ (decide zones drones) $ \(x, y) ->
             -- output a destination point to be reached by one of your
             -- drones. The first line corresponds to the first of your
             -- drones that you were provided as input, the next to the
             -- second, etc.
-            putStrLn "20 20"
+            putStrLn . unwords . map show $ [x, y]
+
+-- | Return the target position of where to move each drone.
+decide :: [Zone] -> [[Drone]] -> [Position]
+decide zones drones = take (length (head drones)) $ cycle zones
