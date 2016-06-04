@@ -25,10 +25,11 @@ readBoard = do
     replicateM h $ fmap (map readSquare) getLine
 
 readSquare :: Char -> Square
-readSquare 'X' = Just Blocked
+readSquare '.' = Nothing
+readSquare '#' = Just Blocked
 readSquare 'B' = Just Begin
 readSquare 'E' = Just End
-readSquare _ = Nothing
+readSquare c = error $ "Unknown square: " ++ [c]
 
 find :: Square -> Board -> Point
 find square board = go 0
