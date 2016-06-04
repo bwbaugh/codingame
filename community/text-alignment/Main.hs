@@ -29,8 +29,12 @@ main = do
     putStr . unlines $ align alignment xs
 
 align :: Alignment -> [String] -> [String]
-align RIGHT xs = map (\x -> padding x ++ x) xs
+align LEFT xs = xs
+align JUSTIFY _ = error "not implemented"
+align alignment xs = map pad xs
   where
-    padding = flip replicate ' ' . (`subtract` maxLength) . length
+    pad x = (flip replicate ' ' . padAmount alignment . length $ x) ++ x
+    padAmount RIGHT = (`subtract` maxLength)
+    padAmount CENTER = (`div` 2) . (`subtract` maxLength)
+    padAmount _ = error "this should never happen"
     maxLength = maximum $ map length xs
-align _ xs = xs
