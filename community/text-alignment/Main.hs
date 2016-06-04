@@ -30,7 +30,17 @@ main = do
 
 align :: Alignment -> [String] -> [String]
 align LEFT xs = xs
-align JUSTIFY _ = error "not implemented"
+align JUSTIFY xs = map (concat . pad . words) xs
+  where
+    pad xs' = zipWith (++) xs' (map (`replicate` ' ') $ spaces totalSpaces (length xs'))
+      where
+        spaces 0 1 = [0]
+        spaces s w = x : spaces (s - x) (w - 1)
+          where
+            x = s `div` (w - 1)
+        totalSpaces = maxLength - charCount xs'
+    charCount = length . concat
+    maxLength = maximum $ map length xs
 align alignment xs = map pad xs
   where
     pad x = (flip replicate ' ' . padAmount alignment . length $ x) ++ x
