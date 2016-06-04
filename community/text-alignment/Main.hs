@@ -29,4 +29,8 @@ main = do
     putStr . unlines $ align alignment xs
 
 align :: Alignment -> [String] -> [String]
+align RIGHT xs = map (\x -> padding x ++ x) xs
+  where
+    padding = flip replicate ' ' . (`subtract` maxLength) . length
+    maxLength = maximum $ map length xs
 align _ xs = xs
