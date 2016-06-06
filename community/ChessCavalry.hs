@@ -16,7 +16,7 @@ type Point = (Int, Int)
 main :: IO ()
 main = do
     board <- readBoard
-    case solve board (S.singleton [find (Just Begin) board]) (find (Just End) board) of
+    case solve board of
         [] -> putStrLn "Impossible"
         path -> print . subtract 1 . length $ path
 
@@ -38,11 +38,17 @@ find square board = go 0
     go row = maybe (go (row + 1)) (row,) $
         findIndex (square ==) (board !! row)
 
-solve :: Board -> S.Seq [Point] -> Point -> [Point]
-solve board queue end
+solve :: Board -> [Point]
+solve board = solve' board queue end
+  where
+    queue = S.singleton [find (Just Begin) board]
+    end = find (Just End) board
+
+solve' :: Board -> S.Seq [Point] -> Point -> [Point]
+solve' board queue end
     | S.null queue = []
     | end `elem` moves = toList $ parent ++ [end]
-    | otherwise = solve board (rest S.>< children) end
+    | otherwise = solve' board (rest S.>< children) end
   where
     (parent', rest) = S.splitAt 1 queue
     parent = head . toList $ parent'
