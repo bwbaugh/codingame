@@ -2,7 +2,7 @@
 {-# LANGUAGE TupleSections #-}
 import Control.Monad
 import Data.Foldable (toList)
-import Data.List (findIndex)
+import Data.List (elemIndex)
 import qualified Data.Sequence as S
 
 type Board = [[Square]]
@@ -35,8 +35,7 @@ readSquare c = error $ "Unknown square: " ++ [c]
 find :: Square -> Board -> Point
 find square board = go 0
   where
-    go row = maybe (go (row + 1)) (row,) $
-        findIndex (square ==) (board !! row)
+    go row = maybe (go (row + 1)) (row,) $ elemIndex square (board !! row)
 
 solve :: Board -> [Point]
 solve board = solve' board queue end
