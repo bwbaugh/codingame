@@ -1,7 +1,9 @@
 {-# OPTIONS_GHC -Wall -Werror #-}
 {-# LANGUAGE TupleSections #-}
 import Control.Monad
+import Data.Foldable (toList)
 import Data.List (findIndex)
+import qualified Data.Sequence as S
 
 type Board = [[Square]]
 
@@ -14,7 +16,7 @@ type Point = (Int, Int)
 main :: IO ()
 main = do
     board <- readBoard
-    case solve board [[find (Just Begin) board]] (find (Just End) board) of
+    case solve board (S.singleton [find (Just Begin) board]) (find (Just End) board) of
         [] -> putStrLn "Impossible"
         path -> print . subtract 1 . length $ path
 
@@ -36,14 +38,16 @@ find square board = go 0
     go row = maybe (go (row + 1)) (row,) $
         findIndex (square ==) (board !! row)
 
-solve :: Board -> [[Point]] -> Point -> [Point]
-solve _ [] _ = []
-solve board (parent:queue) end
-    | end `elem` moves = parent ++ [end]
-    | otherwise = solve board (queue ++ children) end
+solve :: Board -> S.Seq [Point] -> Point -> [Point]
+solve board queue end
+    | S.null queue = []
+    | end `elem` moves = toList $ parent ++ [end]
+    | otherwise = solve board (rest S.>< children) end
   where
+    (parent', rest) = S.splitAt 1 queue
+    parent = head . toList $ parent'
     moves = filter (`notElem` parent) $ legalMoves board (last parent)
-    children = map ((parent ++) . (:[])) moves
+    children = S.fromList $ map ((parent ++) . (:[])) moves
 
 legalMoves :: Board -> Point -> [Point]
 legalMoves board (row, col) = do
