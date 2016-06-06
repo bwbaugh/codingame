@@ -1,8 +1,7 @@
 {-# OPTIONS_GHC -Wall -Werror #-}
 {-# LANGUAGE TupleSections #-}
 import Control.Monad
-import Data.List (findIndex, minimumBy)
-import Data.Ord (comparing)
+import Data.List (findIndex)
 
 type Board = [[Square]]
 
@@ -15,9 +14,9 @@ type Point = (Int, Int)
 main :: IO ()
 main = do
     board <- readBoard
-    case solve board [] (find (Just Begin) board) (find (Just End) board) of
+    case solve board [[find (Just Begin) board]] (find (Just End) board) of
         [] -> putStrLn "Impossible"
-        xss -> print . subtract 1 . length . minimumBy (comparing length) $ xss
+        path -> print . subtract 1 . length $ path
 
 readBoard :: IO Board
 readBoard = do
@@ -37,15 +36,14 @@ find square board = go 0
     go row = maybe (go (row + 1)) (row,) $
         findIndex (square ==) (board !! row)
 
-solve :: Board -> [Point] -> Point -> Point -> [[Point]]
-solve board [] start end = solve board [start] start end
-solve _ path _ end | last path == end = [[]]
-solve board path start end = do
-    point <- legalMoves board (last path)
-    guard (point `notElem` path)
-    let path' = path ++ [point]
-    suffix <- solve board path' start end
-    return $ path' ++ suffix
+solve :: Board -> [[Point]] -> Point -> [Point]
+solve _ [] _ = []
+solve board (parent:queue) end
+    | end `elem` moves = parent ++ [end]
+    | otherwise = solve board (queue ++ children) end
+  where
+    moves = filter (`notElem` parent) $ legalMoves board (last parent)
+    children = map ((parent ++) . (:[])) moves
 
 legalMoves :: Board -> Point -> [Point]
 legalMoves board (row, col) = do
