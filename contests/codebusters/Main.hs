@@ -12,6 +12,8 @@ import           System.IO
     , stdout
     )
 
+import qualified Data.Map.Strict     as M
+
 data Base = TopLeft | BotRight deriving (Eq, Show)
 
 data InitialState = InitialState
@@ -42,9 +44,13 @@ data AnEntity = ABuster Buster | AGhost Ghost deriving (Show)
 
 data Move = MOVE Int Int | BUST Int | RELEASE deriving (Show)
 
+type SearchTasks = M.Map BusterId (Int, Int)
+
+type BusterId = Int
+
 -- | Send your busters out into the fog to trap ghosts and bring them home!
 main :: IO ()
-main = hSetBuffering stdout NoBuffering >> readInitialState >>= loop
+main = hSetBuffering stdout NoBuffering >> readInitialState >>= loop M.empty
 
 readInitialState :: IO InitialState
 readInitialState = InitialState <$> readLn <*> readLn <*> (readBase <$> readLn)
@@ -54,12 +60,12 @@ readBase 0 = TopLeft
 readBase 1 = BotRight
 readBase x = error $ "Unknown team-ID: " ++ show x
 
-loop :: InitialState -> IO ()
-loop initialState =
-    readLn >>=
-    flip replicateM readEntity >>=
-    mapM_ print . move initialState >>
-    loop initialState
+loop :: SearchTasks -> InitialState -> IO ()
+loop tasks initialState =
+    move initialState tasks <$>
+    (readLn >>= flip replicateM readEntity) >>= \(moves, tasks') ->
+    mapM_ print moves >>
+    loop tasks' initialState
 
 readEntity :: IO AnEntity
 readEntity = do
@@ -89,14 +95,16 @@ parseGhost entityId pos value = Entity
     , eTeam = ()
     }
 
-move :: InitialState -> [AnEntity] -> [Move]
-move initialState entities = orderMoves $
-    map release            releasing ++
-    map goHome             notreleasing ++
-    map (second bust)      busting ++
-    map (second goToGhost) moving ++
-    map defaultAction      unpaired
+move :: InitialState -> SearchTasks -> [AnEntity] -> ([Move], SearchTasks)
+move initialState tasks entities = (moves, tasks')
   where
+    moves = orderMoves $
+        map release            releasing ++
+        map goHome             notreleasing ++
+        map (second bust)      busting ++
+        map (second goToGhost) moving ++
+        map (second goto)      searching
+
     -- | Order moves by buster-ID as expected by the game.
     orderMoves :: [(Buster, Move)] -> [Move]
     orderMoves = map snd . sortBy (compare `on` fst) . map (first eId)
@@ -112,7 +120,10 @@ move initialState entities = orderMoves $
     release       b = (b, RELEASE)
     -- TODO: Go to closest point within releasing distance of base.
     goHome        b = (b, goto (baseLocation (myBase initialState)))
-    defaultAction b = (b, goToTheirBase initialState)
+    moveToSearch  b = (b, nextSearch tasks b)
+
+    searching = map moveToSearch unpaired
+    tasks' = M.fromList $ map (first eId) searching
 
 isCarrying :: Buster -> Bool
 isCarrying Entity {eState = CarryingGhost Nothing} = False
@@ -165,3 +176,37 @@ baseLocation BotRight = (16000, 9000)
 
 goto :: (Int, Int) -> Move
 goto (x, y) = MOVE x y
+
+nextSearch :: SearchTasks -> Buster -> (Int, Int)
+nextSearch tasks Entity {eId = bId, ePos = pos} =
+    case M.lookup bId tasks of
+        Nothing -> head searchPoints
+        Just current -> if pos == current then target else current
+  where
+    target = head . tail . dropWhile (/= pos) . cycle $ searchPoints
+
+-- | Buster visibility range.
+vRange :: Int
+vRange = 2200
+
+searchPoints :: [(Int, Int)]
+searchPoints =
+    [ (2200,2200)
+    , (2200,4400)
+    , (2200,6600)
+    , (4400,6600)
+    , (4400,4400)
+    , (4400,2200)
+    , (6600,2200)
+    , (6600,4400)
+    , (6600,6600)
+    , (8800,6600)
+    , (8800,4400)
+    , (8800,2200)
+    , (11000,2200)
+    , (11000,4400)
+    , (11000,6600)
+    , (13200,6600)
+    , (13200,4400)
+    , (13200,2200)
+    ]
