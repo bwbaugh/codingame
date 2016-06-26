@@ -91,7 +91,8 @@ parseGhost entityId pos value = Entity
 
 move :: InitialState -> [AnEntity] -> [Move]
 move initialState entities = orderMoves $
-    map goHome             carrying ++
+    map release            releasing ++
+    map goHome             notreleasing ++
     map (second bust)      busting ++
     map (second goToGhost) moving ++
     map defaultAction      unpaired
@@ -104,15 +105,23 @@ move initialState entities = orderMoves $
     ghosts = [x | AGhost x <- entities]
 
     (carrying, notcarrying) = partition isCarrying busters
+    (releasing, notreleasing) = partition (releaseByHome initialState) carrying
     (paired, unpaired) = pairGhosts notcarrying ghosts
     (busting, moving) = partition ((== EQ) . uncurry bustRange) paired
 
+    release       b = (b, RELEASE)
+    -- TODO: Go to closest point within releasing distance of base.
     goHome        b = (b, goto (baseLocation (myBase initialState)))
     defaultAction b = (b, goToTheirBase initialState)
 
 isCarrying :: Buster -> Bool
 isCarrying Entity {eState = CarryingGhost Nothing} = False
 isCarrying _                                       = True
+
+-- | Check if within release distance of home base.
+releaseByHome :: InitialState -> Buster -> Bool
+releaseByHome InitialState {myBase = base} b =
+    distance (ePos b) (baseLocation base) < 1600
 
 -- | Create pairs of busters and ghosts, and any unpaired busters.
 pairGhosts :: [Buster] -> [Ghost] -> ([(Buster, Ghost)], [Buster])
@@ -121,10 +130,10 @@ pairGhosts bs [] = ([], bs)
 pairGhosts (b:bs) gs = ((b, g) : paired, unpaired)
   where
     (paired, unpaired) = pairGhosts bs gs'
-    (g:gs') = sortBy (compare `on` distance b) gs
+    (g:gs') = sortBy (compare `on` distance (ePos b) . ePos) gs
 
-distance :: Entity a b -> Entity c d -> Double
-distance Entity {ePos = (x1, y1)} Entity {ePos = (x2, y2)} =
+distance :: Integral a => (a, a) -> (a, a) -> Double
+distance (x1, y1) (x2, y2) =
     sqrt $ (fromIntegral x2 - fromIntegral x1) ** 2 +
            (fromIntegral y2 - fromIntegral y1) ** 2
 
@@ -134,7 +143,7 @@ bustRange b g
     | d > 1760  = GT
     | otherwise = EQ
   where
-    d = distance b g
+    d = distance (ePos b) (ePos g)
 
 bust :: Ghost -> Move
 bust = BUST . eId
