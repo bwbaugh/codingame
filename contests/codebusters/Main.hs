@@ -9,7 +9,7 @@ import           System.IO
     , stdout
     )
 
-data Base = TopLeft | BotRight deriving (Show)
+data Base = TopLeft | BotRight deriving (Eq, Show)
 
 data InitialState = InitialState
     { bustersPerPlayer :: !Int  -- ^ The amount of busters you control.
@@ -87,5 +87,6 @@ parseGhost entityId pos value = Entity
     }
 
 move :: InitialState -> [AnEntity] -> [Move]
-move initialState _ =
-    replicate (bustersPerPlayer initialState) (MOVE 8000 4500)
+move initialState entities = map (\_ -> MOVE 8000 4500) busters
+  where
+    busters = [x | ABuster x <- entities, eTeam x == myBase initialState]
