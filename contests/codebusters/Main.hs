@@ -1,23 +1,27 @@
 {-# OPTIONS_GHC -Wall #-}
 module Main where
 
-import Control.Applicative ((<$>), (<*>))
-import Control.Monad (replicateM, replicateM_)
-import System.IO (BufferMode(NoBuffering), hSetBuffering, stdout)
+import           Control.Applicative ((<$>), (<*>))
+import           Control.Monad       (replicateM, replicateM_)
+import           System.IO
+    ( BufferMode (NoBuffering)
+    , hSetBuffering
+    , stdout
+    )
 
 data Base = TopLeft | BotRight deriving (Show)
 
 data InitialState = InitialState
     { bustersPerPlayer :: !Int  -- ^ The amount of busters you control.
-    , ghostCount :: !Int -- ^ The amount of ghosts on the map.
-    , myBase :: !Base -- ^ The base for the team you are on.
+    , ghostCount       :: !Int -- ^ The amount of ghosts on the map.
+    , myBase           :: !Base -- ^ The base for the team you are on.
     } deriving (Show)
 
 data Entity state team = Entity
-    { eId :: !Int  -- ^ Buster-ID or Ghost-ID.
-    , ePos :: !(Int, Int)  -- ^ An (x, y) point.
+    { eId    :: !Int  -- ^ Buster-ID or Ghost-ID.
+    , ePos   :: !(Int, Int)  -- ^ An (x, y) point.
     , eState :: !state
-    , eTeam :: !team
+    , eTeam  :: !team
     } deriving (Show)
 
 newtype BusterState = CarryingGhost (Maybe GhostId) deriving (Show)
