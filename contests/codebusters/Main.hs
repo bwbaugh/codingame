@@ -91,6 +91,7 @@ parseGhost entityId pos value = Entity
 
 move :: InitialState -> [AnEntity] -> [Move]
 move initialState entities = orderMoves $
+    map goHome             carrying ++
     map (second bust)      busting ++
     map (second goToGhost) moving ++
     map defaultAction      unpaired
@@ -102,10 +103,16 @@ move initialState entities = orderMoves $
     busters = [x | ABuster x <- entities, eTeam x == myBase initialState]
     ghosts = [x | AGhost x <- entities]
 
-    (paired, unpaired) = pairGhosts busters ghosts
+    (carrying, notcarrying) = partition isCarrying busters
+    (paired, unpaired) = pairGhosts notcarrying ghosts
     (busting, moving) = partition ((== EQ) . uncurry bustRange) paired
 
+    goHome        b = (b, goto (baseLocation (myBase initialState)))
     defaultAction b = (b, goToTheirBase initialState)
+
+isCarrying :: Buster -> Bool
+isCarrying Entity {eState = CarryingGhost Nothing} = False
+isCarrying _                                       = True
 
 -- | Create pairs of busters and ghosts, and any unpaired busters.
 pairGhosts :: [Buster] -> [Ghost] -> ([(Buster, Ghost)], [Buster])
