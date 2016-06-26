@@ -77,7 +77,7 @@ steps:
       #   >     )
       #
       # Default: inline
-      long_list_align: inline
+      long_list_align: multiline
 
       # List padding determines indentation of import list on lines after import.
       # This option affects 'list_align' and 'long_list_align'.
