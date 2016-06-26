@@ -2,7 +2,7 @@
 module Main where
 
 import           Control.Applicative ((<$>), (<*>))
-import           Control.Monad       (replicateM, replicateM_)
+import           Control.Monad       (replicateM)
 import           System.IO
     ( BufferMode (NoBuffering)
     , hSetBuffering
@@ -52,10 +52,10 @@ readBase 1 = BotRight
 readBase x = error $ "Unknown team-ID: " ++ show x
 
 loop :: InitialState -> IO ()
-loop initialState = do
-    _ <- readLn >>= flip replicateM readEntity
-    replicateM_ (bustersPerPlayer initialState) $
-        print move
+loop initialState =
+    readLn >>=
+    flip replicateM readEntity >>=
+    mapM_ print . move initialState >>
     loop initialState
 
 readEntity :: IO AnEntity
@@ -86,5 +86,6 @@ parseGhost entityId pos value = Entity
     , eTeam = ()
     }
 
-move :: Move
-move = MOVE 8000 4500
+move :: InitialState -> [AnEntity] -> [Move]
+move initialState _ =
+    replicate (bustersPerPlayer initialState) (MOVE 8000 4500)
