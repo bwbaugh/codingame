@@ -123,7 +123,7 @@ move initialState tasks entities = (moves, tasks')
     moveToSearch  b = (b, nextSearch tasks b)
 
     searching = map moveToSearch unpaired
-    tasks' = M.fromList $ map (first eId) searching
+    tasks' = M.fromList (map (first eId) searching) `M.union` tasks
 
 isCarrying :: Buster -> Bool
 isCarrying Entity {eState = CarryingGhost Nothing} = False
