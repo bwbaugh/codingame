@@ -1,4 +1,5 @@
 -   repo: https://github.com/bwbaugh/haskell-pre-commit-hooks/
-    sha: 53f32e20c0122320caf3e02637693c5388061ffa
+    sha: f021692371104ae0b49d0419db9f484c2105f02a
     hooks:
     -   id: hlint
+    -   id: stylish-haskell
