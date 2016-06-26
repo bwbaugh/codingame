@@ -87,6 +87,20 @@ parseGhost entityId pos value = Entity
     }
 
 move :: InitialState -> [AnEntity] -> [Move]
-move initialState entities = map (\_ -> MOVE 8000 4500) busters
+move initialState entities = map (\_ -> goToTheirBase initialState) busters
   where
     busters = [x | ABuster x <- entities, eTeam x == myBase initialState]
+
+goToTheirBase :: InitialState -> Move
+goToTheirBase = goto . baseLocation . theirBase
+
+theirBase :: InitialState -> Base
+theirBase InitialState {myBase = TopLeft} = BotRight
+theirBase InitialState {myBase = BotRight} = TopLeft
+
+baseLocation :: Base -> (Int, Int)
+baseLocation TopLeft = (0, 0)
+baseLocation BotRight = (16000, 9000)
+
+goto :: (Int, Int) -> Move
+goto (x, y) = MOVE x y
