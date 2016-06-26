@@ -5,7 +5,7 @@ import           Control.Applicative ((<$>), (<*>))
 import           Control.Arrow       (first, second)
 import           Control.Monad       (replicateM)
 import           Data.Function       (on)
-import           Data.List           (sortBy)
+import           Data.List           (partition, sortBy)
 import           System.IO
     ( BufferMode (NoBuffering)
     , hSetBuffering
@@ -91,7 +91,8 @@ parseGhost entityId pos value = Entity
 
 move :: InitialState -> [AnEntity] -> [Move]
 move initialState entities = orderMoves $
-    map (second goToGhost) paired ++
+    map (second bust)      busting ++
+    map (second goToGhost) moving ++
     map defaultAction      unpaired
   where
     -- | Order moves by buster-ID as expected by the game.
@@ -102,6 +103,7 @@ move initialState entities = orderMoves $
     ghosts = [x | AGhost x <- entities]
 
     (paired, unpaired) = pairGhosts busters ghosts
+    (busting, moving) = partition ((== EQ) . uncurry bustRange) paired
 
     defaultAction b = (b, goToTheirBase initialState)
 
@@ -118,6 +120,17 @@ distance :: Entity a b -> Entity c d -> Double
 distance Entity {ePos = (x1, y1)} Entity {ePos = (x2, y2)} =
     sqrt $ (fromIntegral x2 - fromIntegral x1) ** 2 +
            (fromIntegral y2 - fromIntegral y1) ** 2
+
+bustRange :: Buster -> Ghost -> Ordering
+bustRange b g
+    | d < 900   = LT
+    | d > 1760  = GT
+    | otherwise = EQ
+  where
+    d = distance b g
+
+bust :: Ghost -> Move
+bust = BUST . eId
 
 -- TODO: Move a shorter distance by knowing where we are coming from.
 goToGhost :: Ghost -> Move
