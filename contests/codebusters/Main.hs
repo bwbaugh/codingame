@@ -2,7 +2,10 @@
 module Main where
 
 import           Control.Applicative ((<$>), (<*>))
+import           Control.Arrow       (first, second)
 import           Control.Monad       (replicateM)
+import           Data.Function       (on)
+import           Data.List           (sortBy)
 import           System.IO
     ( BufferMode (NoBuffering)
     , hSetBuffering
@@ -87,9 +90,38 @@ parseGhost entityId pos value = Entity
     }
 
 move :: InitialState -> [AnEntity] -> [Move]
-move initialState entities = map (\_ -> goToTheirBase initialState) busters
+move initialState entities = orderMoves $
+    map (second goToGhost) paired ++
+    map defaultAction      unpaired
   where
+    -- | Order moves by buster-ID as expected by the game.
+    orderMoves :: [(Buster, Move)] -> [Move]
+    orderMoves = map snd . sortBy (compare `on` fst) . map (first eId)
+
     busters = [x | ABuster x <- entities, eTeam x == myBase initialState]
+    ghosts = [x | AGhost x <- entities]
+
+    (paired, unpaired) = pairGhosts busters ghosts
+
+    defaultAction b = (b, goToTheirBase initialState)
+
+-- | Create pairs of busters and ghosts, and any unpaired busters.
+pairGhosts :: [Buster] -> [Ghost] -> ([(Buster, Ghost)], [Buster])
+pairGhosts [] _ = ([], [])
+pairGhosts bs [] = ([], bs)
+pairGhosts (b:bs) gs = ((b, g) : paired, unpaired)
+  where
+    (paired, unpaired) = pairGhosts bs gs'
+    (g:gs') = sortBy (compare `on` distance b) gs
+
+distance :: Entity a b -> Entity c d -> Double
+distance Entity {ePos = (x1, y1)} Entity {ePos = (x2, y2)} =
+    sqrt $ (fromIntegral x2 - fromIntegral x1) ** 2 +
+           (fromIntegral y2 - fromIntegral y1) ** 2
+
+-- TODO: Move a shorter distance by knowing where we are coming from.
+goToGhost :: Ghost -> Move
+goToGhost = goto . ePos
 
 goToTheirBase :: InitialState -> Move
 goToTheirBase = goto . baseLocation . theirBase
