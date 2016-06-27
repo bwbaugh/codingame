@@ -138,10 +138,10 @@ releaseByHome InitialState {myBase = base} b =
 pairGhosts :: [Buster] -> [Ghost] -> ([(Buster, Ghost)], [Buster])
 pairGhosts [] _ = ([], [])
 pairGhosts bs [] = ([], bs)
-pairGhosts (b:bs) gs = ((b, g) : paired, unpaired)
+pairGhosts bs (g:gs) = ((b, g) : paired, unpaired)
   where
-    (paired, unpaired) = pairGhosts bs gs'
-    (g:gs') = sortBy (compare `on` distance (ePos b) . ePos) gs
+    (paired, unpaired) = pairGhosts bs' gs
+    (b:bs') = sortBy (compare `on` distance (ePos g) . ePos) bs
 
 distance :: Integral a => (a, a) -> (a, a) -> Double
 distance (x1, y1) (x2, y2) =
