@@ -123,6 +123,7 @@ move initialState tasks stun turn entities = (moves, tasks', stun')
         map goHome                notreleasing ++
         map (second bust)         busting ++
         map (second goToGhost)    moving ++
+        map (goHome . fst)        tooclose ++
         map (second (STUN . eId)) stunning ++
         map (second goto)         searching
 
@@ -137,7 +138,8 @@ move initialState tasks stun turn entities = (moves, tasks', stun')
     (carrying, notcarrying) = partition isCarrying busters
     (releasing, notreleasing) = partition (releaseByHome initialState) carrying
     (paired, unpaired) = pairGhosts notcarrying ghosts
-    (busting, moving) = partition ((== EQ) . uncurry bustRange) paired
+    (busting, notbusting) = partition ((== EQ) . uncurry bustRange) paired
+    (moving, tooclose)    = partition ((== GT) . uncurry bustRange) notbusting
 
     release       b = (b, RELEASE)
     -- TODO: Go to closest point within releasing distance of base.
