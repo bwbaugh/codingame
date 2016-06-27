@@ -178,20 +178,21 @@ goto :: (Int, Int) -> Move
 goto (x, y) = MOVE x y
 
 nextSearch :: Int -> SearchTasks -> Buster -> (Int, Int)
-nextSearch totalBusters tasks Entity {eId = bId, ePos = pos} =
+nextSearch totalBusters tasks b@Entity {eId = bId, ePos = pos} =
     case M.lookup bId tasks of
-        Nothing -> head (searchPoints totalBusters bId)
+        Nothing -> head (searchPoints totalBusters b)
         Just current -> if pos == current then target else current
   where
-    target = head . tail . dropWhile (/= pos) . cycle $ searchPoints totalBusters bId
+    target =
+        head . tail . dropWhile (/= pos) . cycle $ searchPoints totalBusters b
 
 -- | Buster visibility range.
 vRange :: Int
 vRange = 2200
 
-searchPoints :: Int -> BusterId -> [(Int, Int)]
-searchPoints totalBusters bId =
-    map snd . filter ((== bId) . (`rem` totalBusters) . fst) . zip [0..] $
+searchPoints :: Int -> Buster -> [(Int, Int)]
+searchPoints totalBusters Entity {eId = bId', eTeam = team} =
+    map snd . filter ((== bId) . (`rem` totalBusters) . fst) . zip [0..] . r $
         [ (2100,2100)
         , (2100,4300)
         , (2100,6900)
@@ -211,3 +212,7 @@ searchPoints totalBusters bId =
         , (13900,4300)
         , (13900,2100)
         ]
+  where
+    (r, bId) = case team of
+        TopLeft  -> (id,      bId')
+        BotRight -> (reverse, bId' - totalBusters)
