@@ -178,10 +178,12 @@ pairStun :: LastStun
          -> ([(Buster, Buster)], [Buster])
 pairStun _    _    [] _      = ([], [])
 pairStun _    _    bs []     = ([], bs)
-pairStun stun turn bs (g:gs) =
-    case bs' of
-        (b:_) -> ((b, g) : paired, unpaired)
-        []    -> pairStun stun turn bs gs
+pairStun stun turn bs (g:gs)
+    | not (isCarrying g) = pairStun stun turn bs gs
+    | otherwise =
+        case bs' of
+            (b:_) -> ((b, g) : paired, unpaired)
+            []    -> pairStun stun turn bs gs
   where
     (paired, unpaired) = pairStun stun turn (delete (head bs') bs) gs
     bs' = filter stunUp  . filter withinDistance $ bs
