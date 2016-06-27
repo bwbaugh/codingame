@@ -120,7 +120,7 @@ move initialState tasks entities = (moves, tasks')
     release       b = (b, RELEASE)
     -- TODO: Go to closest point within releasing distance of base.
     goHome        b = (b, goto (baseLocation (myBase initialState)))
-    moveToSearch  b = (b, nextSearch tasks b)
+    moveToSearch  b = (b, nextSearch (bustersPerPlayer initialState) tasks b)
 
     searching = map moveToSearch unpaired
     tasks' = M.fromList (map (first eId) searching) `M.union` tasks
@@ -177,36 +177,37 @@ baseLocation BotRight = (16000, 9000)
 goto :: (Int, Int) -> Move
 goto (x, y) = MOVE x y
 
-nextSearch :: SearchTasks -> Buster -> (Int, Int)
-nextSearch tasks Entity {eId = bId, ePos = pos} =
+nextSearch :: Int -> SearchTasks -> Buster -> (Int, Int)
+nextSearch totalBusters tasks Entity {eId = bId, ePos = pos} =
     case M.lookup bId tasks of
-        Nothing -> head searchPoints
+        Nothing -> head (searchPoints totalBusters bId)
         Just current -> if pos == current then target else current
   where
-    target = head . tail . dropWhile (/= pos) . cycle $ searchPoints
+    target = head . tail . dropWhile (/= pos) . cycle $ searchPoints totalBusters bId
 
 -- | Buster visibility range.
 vRange :: Int
 vRange = 2200
 
-searchPoints :: [(Int, Int)]
-searchPoints =
-    [ (2100,2100)
-    , (2100,4300)
-    , (2100,6900)
-    , (4300,6900)
-    , (4300,4300)
-    , (4300,2100)
-    , (6500,2200)
-    , (6500,4300)
-    , (6500,6900)
-    , (8700,6900)
-    , (8700,4300)
-    , (8700,2100)
-    , (10900,2100)
-    , (10900,4300)
-    , (10900,6900)
-    , (13900,6900)
-    , (13900,4300)
-    , (13900,2100)
-    ]
+searchPoints :: Int -> BusterId -> [(Int, Int)]
+searchPoints totalBusters bId =
+    map snd . filter ((== bId) . (`rem` totalBusters) . fst) . zip [0..] $
+        [ (2100,2100)
+        , (2100,4300)
+        , (2100,6900)
+        , (4300,6900)
+        , (4300,4300)
+        , (4300,2100)
+        , (6500,2200)
+        , (6500,4300)
+        , (6500,6900)
+        , (8700,6900)
+        , (8700,4300)
+        , (8700,2100)
+        , (10900,2100)
+        , (10900,4300)
+        , (10900,6900)
+        , (13900,6900)
+        , (13900,4300)
+        , (13900,2100)
+        ]
