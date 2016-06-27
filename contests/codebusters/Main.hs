@@ -5,7 +5,7 @@ import           Control.Applicative ((<$>), (<*>))
 import           Control.Arrow       (first, second)
 import           Control.Monad       (replicateM)
 import           Data.Function       (on)
-import           Data.List           (partition, sortBy)
+import           Data.List           (delete, partition, sortBy)
 import           System.IO
     ( BufferMode (NoBuffering)
     , hSetBuffering
@@ -29,6 +29,9 @@ data Entity state team = Entity
     , eTeam  :: !team
     } deriving (Show)
 
+instance Eq (Entity s t) where
+    (==) = (==) `on` eId
+
 newtype BusterState = CarryingGhost (Maybe GhostId) deriving (Show)
 
 type GhostId = Int
@@ -42,15 +45,27 @@ type Ghost = Entity GhostState ()
 -- | Wrapper to allow returning one of these types.
 data AnEntity = ABuster Buster | AGhost Ghost deriving (Show)
 
-data Move = MOVE Int Int | BUST Int | RELEASE deriving (Show)
+data Move =
+      MOVE Int Int
+    | BUST GhostId
+    | RELEASE
+    | STUN BusterId
+    deriving (Show)
 
 type SearchTasks = M.Map BusterId (Int, Int)
 
 type BusterId = Int
 
+type LastStun = M.Map BusterId Turn
+
+type Turn = Int
+
 -- | Send your busters out into the fog to trap ghosts and bring them home!
 main :: IO ()
-main = hSetBuffering stdout NoBuffering >> readInitialState >>= loop M.empty
+main =
+    hSetBuffering stdout NoBuffering >>
+    readInitialState >>=
+    loop M.empty M.empty 0
 
 readInitialState :: IO InitialState
 readInitialState = InitialState <$> readLn <*> readLn <*> (readBase <$> readLn)
@@ -60,12 +75,12 @@ readBase 0 = TopLeft
 readBase 1 = BotRight
 readBase x = error $ "Unknown team-ID: " ++ show x
 
-loop :: SearchTasks -> InitialState -> IO ()
-loop tasks initialState =
-    move initialState tasks <$>
-    (readLn >>= flip replicateM readEntity) >>= \(moves, tasks') ->
+loop :: SearchTasks -> LastStun -> Turn -> InitialState -> IO ()
+loop tasks stun turn initialState =
+    move initialState tasks stun turn <$>
+    (readLn >>= flip replicateM readEntity) >>= \(moves, tasks', stun') ->
     mapM_ print moves >>
-    loop tasks' initialState
+    loop tasks' stun' (turn + 1) initialState
 
 readEntity :: IO AnEntity
 readEntity = do
@@ -95,21 +110,28 @@ parseGhost entityId pos value = Entity
     , eTeam = ()
     }
 
-move :: InitialState -> SearchTasks -> [AnEntity] -> ([Move], SearchTasks)
-move initialState tasks entities = (moves, tasks')
+move :: InitialState
+     -> SearchTasks
+     -> LastStun
+     -> Turn
+     -> [AnEntity]
+     -> ([Move], SearchTasks, LastStun)
+move initialState tasks stun turn entities = (moves, tasks', stun')
   where
     moves = orderMoves $
-        map release            releasing ++
-        map goHome             notreleasing ++
-        map (second bust)      busting ++
-        map (second goToGhost) moving ++
-        map (second goto)      searching
+        map release               releasing ++
+        map goHome                notreleasing ++
+        map (second bust)         busting ++
+        map (second goToGhost)    moving ++
+        map (second (STUN . eId)) stunning ++
+        map (second goto)         searching
 
     -- | Order moves by buster-ID as expected by the game.
     orderMoves :: [(Buster, Move)] -> [Move]
     orderMoves = map snd . sortBy (compare `on` fst) . map (first eId)
 
     busters = [x | ABuster x <- entities, eTeam x == myBase initialState]
+    enemies = [x | ABuster x <- entities, eTeam x /= myBase initialState]
     ghosts = [x | AGhost x <- entities]
 
     (carrying, notcarrying) = partition isCarrying busters
@@ -122,8 +144,14 @@ move initialState tasks entities = (moves, tasks')
     goHome        b = (b, goto (baseLocation (myBase initialState)))
     moveToSearch  b = (b, nextSearch (bustersPerPlayer initialState) tasks b)
 
-    searching = map moveToSearch unpaired
+    (stunning, notstunning) = pairStun stun turn unpaired enemies
+
+    searching = map moveToSearch notstunning
     tasks' = M.fromList (map (first eId) searching) `M.union` tasks
+    stun' =
+        M.fromList (
+            map (first eId . second (const turn)) stunning
+        ) `M.union` stun
 
 isCarrying :: Buster -> Bool
 isCarrying Entity {eState = CarryingGhost Nothing} = False
@@ -142,6 +170,23 @@ pairGhosts bs (g:gs) = ((b, g) : paired, unpaired)
   where
     (paired, unpaired) = pairGhosts bs' gs
     (b:bs') = sortBy (compare `on` distance (ePos g) . ePos) bs
+
+pairStun :: LastStun
+         -> Turn
+         -> [Buster]
+         -> [Buster]
+         -> ([(Buster, Buster)], [Buster])
+pairStun _    _    [] _      = ([], [])
+pairStun _    _    bs []     = ([], bs)
+pairStun stun turn bs (g:gs) =
+    case bs' of
+        (b:_) -> ((b, g) : paired, unpaired)
+        []    -> pairStun stun turn bs gs
+  where
+    (paired, unpaired) = pairStun stun turn (delete (head bs') bs) gs
+    bs' = filter stunUp  . filter withinDistance $ bs
+    withinDistance = (<= 1760) . distance (ePos g) . ePos
+    stunUp = maybe True ((turn >) . (20 +)) . (`M.lookup` stun) . eId
 
 distance :: Integral a => (a, a) -> (a, a) -> Double
 distance (x1, y1) (x2, y2) =
