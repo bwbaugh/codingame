@@ -52,8 +52,8 @@ solve (Fraction _ 0)    = DivisionByZero
 solve (Fraction n 1)    = Reduced n
 solve (Fraction n (-1)) = Reduced (-n)
 solve (Fraction n d)
-    | n < 0     = Mixed   q  (Fraction (-r) d)
-    | d < 0     = Mixed (-q) (Fraction r (-d))
-    | otherwise = Mixed   q  (Fraction r d)
+    | abs n <= abs d = Mixed 0 (Fraction (if n > 0 && d > 0 then n else (-(abs n))) (abs d))
+    | n < 0 || d < 0 = Mixed (-q) (Fraction r (abs d))
+    | otherwise      = Mixed   q  (Fraction r d)
   where
     (q, r) = abs n `divMod` abs d
