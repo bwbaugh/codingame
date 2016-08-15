@@ -32,7 +32,10 @@ data Entity state team = Entity
 instance Eq (Entity s t) where
     (==) = (==) `on` eId
 
-newtype BusterState = CarryingGhost (Maybe GhostId) deriving (Show)
+data BusterState =
+      CarryingGhost (Maybe GhostId)
+    | Stunned Turn
+    deriving (Show)
 
 type GhostId = Int
 
@@ -84,25 +87,30 @@ loop tasks stun turn initialState =
 
 readEntity :: IO AnEntity
 readEntity = do
-    [entityId, x, y, entityType', _, value] <- map read . words <$> getLine
-    let parseBuster' base = ABuster $ parseBuster entityId (x, y) base value
+    [entityId, x, y, entityType', state, value] <- map read . words <$> getLine
+    let parseBuster' base =
+            ABuster $ parseBuster entityId (x, y) base state value
         in case entityType' of
             0 -> return $ parseBuster' TopLeft
             1 -> return $ parseBuster' BotRight
             (-1) -> return $ AGhost (parseGhost entityId (x, y) value)
             t -> error $ "Unknown entity type: " ++ show t
 
-parseBuster :: Int -> (Int, Int) -> Base -> Int -> Buster
-parseBuster entityId pos base value = Entity
+parseBuster :: BusterId -> (Int, Int) -> Base -> Int -> Int -> Buster
+parseBuster entityId pos base state value = Entity
     { eId = entityId
     , ePos = pos
-    , eState = CarryingGhost $ case value of
-        (-1) -> Nothing
-        x -> Just x
+    , eState = case state of
+        0 -> CarryingGhost Nothing
+        1 -> CarryingGhost (Just value)
+        2 -> Stunned value
+        -- There's an undocumented state ``3``.
+        -- 3 -> Busting value
+        x -> error $ "Unknown buster state: " ++ show x ++ "; value: " ++ show value
     , eTeam = base
     }
 
-parseGhost :: Int -> (Int, Int) -> Int -> Ghost
+parseGhost :: GhostId -> (Int, Int) -> Int -> Ghost
 parseGhost entityId pos value = Entity
     { eId = entityId
     , ePos = pos
@@ -156,8 +164,8 @@ move initialState tasks stun turn entities = (moves, tasks', stun')
         ) `M.union` stun
 
 isCarrying :: Buster -> Bool
-isCarrying Entity {eState = CarryingGhost Nothing} = False
-isCarrying _                                       = True
+isCarrying Entity {eState = CarryingGhost (Just x)} = True
+isCarrying _                                        = False
 
 -- | Check if within release distance of home base.
 releaseByHome :: InitialState -> Buster -> Bool
