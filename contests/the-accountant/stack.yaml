@@ -1,4 +1,6 @@
-resolver: ghc-7.8.4
+# Should be on ghc-7.8.4 but there's an issue with OS X:
+#   https://github.com/haskell/cabal/issues/2653
+resolver: ghc-7.10.3
 
 packages:
 - '.'
