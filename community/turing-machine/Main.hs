@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wall #-}
 import           Control.Monad   (replicateM)
-import           Data.List.Split
+import           Data.List.Split (splitOn)
 import qualified Data.Map.Strict as Map
 import           System.IO
     ( BufferMode (NoBuffering)
@@ -11,12 +11,16 @@ import           System.IO
 data TuringMachine = TuringMachine
     { tSymbols    :: !Int
     , tLength     :: !Int
-    , tPosition   :: !Int
-    -- TODO: Change to sequence.
-    , tTape       :: [Symbol]
+    , tPosition   :: !Position
+    , tTape       :: Tape
     , tState      :: State
     , tStateTable :: StateTable
     } deriving (Show)
+
+type Position = Int
+
+-- TODO: Change to sequence.
+type Tape = [Symbol]
 
 type Symbol = Int
 
@@ -90,7 +94,27 @@ isHalt TuringMachine {tPosition = p, tLength = l}
     | otherwise = False
 
 step :: TuringMachine -> TuringMachine
-step = undefined
+step machine = machine
+    { tPosition = move direction (tPosition machine)
+    , tTape = updateTape (tPosition machine) symbol (tTape machine)
+    , tState = next
+    }
+  where
+    Action {aSymbol = symbol, aDirection = direction, aNext = next} =
+        Map.findWithDefault
+            (error "unknown state") (tableKey machine) (tStateTable machine)
+
+tableKey :: TuringMachine -> (State, Symbol)
+tableKey TuringMachine {tState = s, tPosition = p, tTape = t} = (s, t !! p)
+
+move :: Direction -> Position -> Position
+move L x = x - 1
+move R x = x + 1
+
+updateTape :: Position -> Symbol -> Tape -> Tape
+updateTape p s t = left ++ [s] ++ tail right
+  where
+    (left, right) = splitAt p t
 
 displayState :: Int -> TuringMachine -> IO ()
 displayState actions machine = do
