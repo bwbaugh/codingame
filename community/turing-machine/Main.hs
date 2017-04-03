@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -Wall #-}
 import           Control.Monad   (replicateM)
+import           Data.List.Split
 import qualified Data.Map.Strict as Map
 import           System.IO
     ( BufferMode (NoBuffering)
@@ -24,7 +25,7 @@ data State = HALT | State String deriving (Eq, Ord, Read, Show)
 type StateTable = Map.Map (State, Symbol) Action
 
 data Action = Action
-    { aSymbol    :: Char
+    { aSymbol    :: Int
     , aDirection :: Direction
     , aNext      :: State
     } deriving (Show)
@@ -57,7 +58,24 @@ readStateTable =
     (readLn >>= flip replicateM (parseActions <$> getLine))
 
 parseActions :: String -> [((State, Symbol), Action)]
-parseActions = undefined
+parseActions xs = [((state, i), a) | (i, a) <- zip [0..] actions]
+  where
+    (state, actions) =
+        (\(s, as) -> (readState s, readActions (tail as))) $ break (== ':') xs
+
+readActions :: String -> [Action]
+readActions = map readAction . splitOn ";"
+
+readAction :: String -> Action
+readAction xs = let [symbol, direction, next] = words xs in Action
+    { aSymbol    = read symbol
+    , aDirection = read direction
+    , aNext      = readState next
+    }
+
+readState :: String -> State
+readState "HALT" = HALT
+readState xs     = State xs
 
 runMachine :: Int -> TuringMachine -> (Int, TuringMachine)
 runMachine a m = (a, m)
