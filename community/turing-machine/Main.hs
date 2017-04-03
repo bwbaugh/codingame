@@ -78,7 +78,19 @@ readState "HALT" = HALT
 readState xs     = State xs
 
 runMachine :: Int -> TuringMachine -> (Int, TuringMachine)
-runMachine a m = (a, m)
+runMachine a m = if isHalt m' then (a + 1, m') else runMachine (a + 1) m'
+  where
+    m' = step m
+
+isHalt :: TuringMachine -> Bool
+isHalt TuringMachine {tState = HALT} = True
+isHalt TuringMachine {tPosition = p, tLength = l}
+    | p < 0 = True
+    | p >= l = True
+    | otherwise = False
+
+step :: TuringMachine -> TuringMachine
+step = undefined
 
 displayState :: Int -> TuringMachine -> IO ()
 displayState actions machine = do
