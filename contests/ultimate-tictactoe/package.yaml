@@ -1,0 +1,17 @@
+name: ultimate-tictactoe
+version: '0.1.0'
+synopsis: Ultimate Tic-Tac-Toe contest from CodinGame.
+description: See README.
+category: Game
+author: Wesley Baugh
+maintainer: bwbaugh@gmail.com
+copyright: 2018 Wesley Baugh
+license: AllRightsReserved
+extra-source-files:
+- README.rst
+dependencies:
+- base
+executables:
+  ultimate-tictactoe:
+    main: Main.hs
+    source-dirs: ./.
