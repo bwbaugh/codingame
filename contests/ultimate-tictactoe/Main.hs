@@ -1,34 +1,27 @@
-import System.IO
-import Control.Monad
+{-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Werror #-}
+module Main (main) where
+
+import           Control.Monad (forever, replicateM)
+import           System.IO
+    ( BufferMode (NoBuffering)
+    , hSetBuffering
+    , stdout
+    )
+
+type Point = (Int, Int)
 
 main :: IO ()
 main = do
-    hSetBuffering stdout NoBuffering -- DO NOT REMOVE
-    
-    -- Auto-generated code below aims at helping you parse
-    -- the standard input according to the problem statement.
-    
-    loop
+    hSetBuffering stdout NoBuffering
+    forever $ do
+        [oppRow, oppCol] <- map read . words <$> getLine :: IO [Int]
+        actions <- readLn >>= flip replicateM
+            ((\[row, col] -> (row, col)) . map read . words <$> getLine)
+        (putStrLn . showPoint) $ move (oppRow, oppCol) actions
 
-loop :: IO ()
-loop = do
-    input_line <- getLine
-    let input = words input_line
-    let opponentrow = read (input!!0) :: Int
-    let opponentcol = read (input!!1) :: Int
-    input_line <- getLine
-    let validactioncount = read input_line :: Int
-    
-    replicateM validactioncount $ do
-        input_line <- getLine
-        let input = words input_line
-        let row = read (input!!0) :: Int
-        let col = read (input!!1) :: Int
-        return ()
-    
-    -- hPutStrLn stderr "Debug messages..."
-    
-    -- Write action to stdout
-    putStrLn "0 0"
-    
-    loop
+showPoint :: Point -> String
+showPoint (row, col) = (unwords . map show) [row, col]
+
+move :: Point -> [Point] -> Point
+move _ _ = (0, 0)
