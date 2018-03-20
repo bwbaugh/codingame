@@ -24,4 +24,4 @@ showPoint :: Point -> String
 showPoint (row, col) = (unwords . map show) [row, col]
 
 move :: Point -> [Point] -> Point
-move _ _ = (0, 0)
+move _ = head
